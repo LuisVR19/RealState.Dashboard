@@ -1,0 +1,33 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	// Tiene que ser igual al nombre del proyecto en Cloudflare (Workers & Pages), si no el deploy
+	// de CI sobreescribe el nombre y WORKER_SELF_REFERENCE apunta a un Worker que no existe (error 10143).
+	"name": "realstate-dashboard",
+	"compatibility_date": "2026-10-30",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			// Se referencia a sí mismo; el nombre del servicio tiene que ser igual al "name" del Worker.
+			// https://opennext.js.org/cloudflare/caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "realstate-dashboard"
+		}
+	],
+	"images": {
+		// Optimización de imágenes de next/image: https://opennext.js.org/cloudflare/howtos/image
+		"binding": "IMAGES"
+	}
+	// --- Caché ---
+	// A diferencia del sitio público, el panel NO usa la caché de Next (`use cache`, cacheTag):
+	// todo se lee en vivo de Supabase. Por eso no lleva KV, D1 ni Durable Object (ver open-next.config.ts).
+	// Si algún día se activa, crear recursos PROPIOS del panel; no reutilizar los del sitio
+	// (las dos apps compartirían claves de caché, p. ej. la ruta "/").
+}

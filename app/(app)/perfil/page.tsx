@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { changeMyPassword, updateMyProfile } from "@/app/actions/team";
 import { usePanel } from "@/components/panel-provider";
 import { PasswordInput } from "@/components/PasswordInput";
+import { Turnstile, turnstileEnabled, type TurnstileHandle } from "@/components/Turnstile";
 
 /** Perfil del usuario (lo que ven los clientes en el sitio) y cambio de contraseña. */
 export default function ProfilePage() {
@@ -15,9 +16,14 @@ export default function ProfilePage() {
   const set = (o: Partial<typeof f>) => setF((x) => ({ ...x, ...o }));
 
   const save = () => startSaving(async () => void (await run(() => updateMyProfile(f), "Perfil guardado")));
+  // Verificar la contraseña actual es un inicio de sesión: con el captcha activado en Supabase lo exige.
+  const captcha = useRef<TurnstileHandle>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
   const changePassword = () =>
     startChanging(async () => {
-      if ((await run(() => changeMyPassword(pw.current, pw.next), "Contraseña actualizada")).ok) setPw({ current: "", next: "" });
+      const res = await run(() => changeMyPassword(pw.current, pw.next, captcha.current?.token()), "Contraseña actualizada");
+      captcha.current?.reset(); // El token es de un solo uso.
+      if (res.ok) setPw({ current: "", next: "" });
     });
 
   return (
@@ -52,7 +58,8 @@ export default function ProfilePage() {
           <div className="field"><label htmlFor="pf-cur">Contraseña actual</label><PasswordInput id="pf-cur" className="input h40" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} /></div>
           <div className="field"><label htmlFor="pf-new">Nueva contraseña</label><PasswordInput id="pf-new" className="input h40" autoComplete="new-password" maxLength={72} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} placeholder="Mínimo 8 caracteres" /></div>
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}><button className="btn btn-secondary h40" onClick={changePassword} disabled={changing || !pw.current || pw.next.length < 8}>{changing ? "Actualizando…" : "Actualizar contraseña"}</button></div>
+        {pw.current && <Turnstile ref={captcha} action="password" onChange={setCaptchaToken} />}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}><button className="btn btn-secondary h40" onClick={changePassword} disabled={changing || !pw.current || pw.next.length < 8 || (turnstileEnabled && !captchaToken)}>{changing ? "Actualizando…" : "Actualizar contraseña"}</button></div>
       </section>
     </div>
   );

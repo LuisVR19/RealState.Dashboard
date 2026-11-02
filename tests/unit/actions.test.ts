@@ -266,6 +266,14 @@ describe("changeMyPassword", () => {
     await changeMyPassword("actual", "NuevaClave123");
     expect(db.client.auth.signInWithPassword).toHaveBeenCalledWith({ email: AGENT.email, password: "actual" });
   });
+
+  it("manda el token de Turnstile y traduce el rechazo del captcha", async () => {
+    db.client.auth.signInWithPassword.mockResolvedValueOnce({ error: { status: 400, message: "captcha protection: request disallowed" } });
+    const res = await changeMyPassword("actual", "NuevaClave123", "tok-1");
+    expect(db.client.auth.signInWithPassword).toHaveBeenCalledWith({ email: AGENT.email, password: "actual", options: { captchaToken: "tok-1" } });
+    expect(res).toEqual({ ok: false, error: expect.stringContaining("robot") });
+    expect(db.client.auth.updateUser).not.toHaveBeenCalled();
+  });
 });
 
 /* ------------------------------------------------------------------ visitas */

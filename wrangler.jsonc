@@ -24,7 +24,17 @@
 	"images": {
 		// Optimización de imágenes de next/image: https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
-	}
+	},
+	// Límite por IP del login y la recuperación de contraseña (lib/abuse.ts). Supabase ve la IP del
+	// Worker, no la del usuario, así que este límite es el que frena la fuerza bruta por persona.
+	// period solo admite 10 o 60 s. namespace_id es único por cuenta (el sitio usa 1001).
+	"ratelimits": [
+		{
+			"name": "AUTH_LIMITER",
+			"namespace_id": "1002",
+			"simple": { "limit": 5, "period": 60 }
+		}
+	]
 	// --- Caché ---
 	// A diferencia del sitio público, el panel NO usa la caché de Next (`use cache`, cacheTag):
 	// todo se lee en vivo de Supabase. Por eso no lleva KV, D1 ni Durable Object (ver open-next.config.ts).

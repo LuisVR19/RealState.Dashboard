@@ -1,5 +1,6 @@
 "use server";
 
+import { captchaToken } from "@/lib/abuse";
 import { changed, check, panelUrl, revalidateSite, runAction, UserError, v } from "@/lib/action";
 import type { ServerClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
@@ -130,12 +131,20 @@ export async function updateMyProfile(i: Omit<MemberInput, "email" | "role"> & {
 }
 
 /** Cambia la contraseña pidiendo la actual (evita que una sesión abierta ajena la cambie). */
-export async function changeMyPassword(current: string, next: string) {
+export async function changeMyPassword(current: string, next: string, captcha?: string) {
   return runAction(async ({ supabase, me }) => {
     if (typeof next !== "string" || next.length < 8 || next.length > 72) throw new UserError("La contraseña nueva debe tener entre 8 y 72 caracteres.");
     if (typeof current !== "string" || !current) throw new UserError("Escribe tu contraseña actual.");
-    const { error: authError } = await supabase.auth.signInWithPassword({ email: me.email, password: current });
-    if (authError) throw new UserError(authError.status === 429 ? "Demasiados intentos. Espera unos minutos." : "La contraseña actual no es correcta.");
+    // Con el captcha activado en Supabase Auth, este inicio de sesión también lo exige.
+    const token = captchaToken(captcha);
+    const { error: authError } = await supabase.auth.signInWithPassword({ email: me.email, password: current, ...(token ? { options: { captchaToken: token } } : {}) });
+    if (authError) {
+      throw new UserError(
+        authError.status === 429 ? "Demasiados intentos. Espera unos minutos."
+        : /captcha/i.test(authError.message) ? "No pudimos verificar que no eres un robot. Intenta de nuevo."
+        : "La contraseña actual no es correcta.",
+      );
+    }
     const { error } = await supabase.auth.updateUser({ password: next });
     if (error) throw new UserError(error.code === "same_password" ? "La contraseña nueva debe ser distinta de la actual." : error.code === "weak_password" ? "La contraseña es muy débil." : "No se pudo cambiar la contraseña.");
     return null;

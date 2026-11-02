@@ -6,6 +6,8 @@ import { AGENT, fakeSupabase } from "./helpers";
 const state = vi.hoisted(() => ({ db: null as unknown, session: { supabase: null as unknown, userId: null as string | null, me: null as unknown }, claims: null as { sub: string } | null }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => state.db }));
 vi.mock("@/lib/auth", () => ({ getSession: async () => state.session }));
+const abuse = vi.hoisted(() => ({ rateLimit: vi.fn(async (..._args: unknown[]) => true), clientIp: vi.fn(async () => "203.0.113.7") }));
+vi.mock("@/lib/abuse", async (orig) => ({ ...(await orig<typeof import("@/lib/abuse")>()), ...abuse }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 // redirect() de Next lanza para cortar la acción; aquí lo convertimos en un error inspeccionable.
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT:${url}`); } }));
@@ -36,7 +38,42 @@ beforeEach(() => {
   state.db = db.client;
   state.session = { supabase: db.client, userId: null, me: null };
   state.claims = null;
+  abuse.rateLimit.mockReset().mockResolvedValue(true);
   vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+/* ------------------------------------------------------------ abuso (H-02) */
+describe("rate limit y captcha", () => {
+  const ok = { email: "carlos@isf.test", password: "Asesor123!" };
+
+  it("el login limita por IP y manda el token de Turnstile a Supabase", async () => {
+    await redirectOf(login(null, form({ ...ok, "cf-turnstile-response": "tok-123" })));
+    expect(abuse.rateLimit).toHaveBeenCalledWith("AUTH_LIMITER", "login:203.0.113.7");
+    expect(db.client.auth.signInWithPassword).toHaveBeenCalledWith({ ...ok, options: { captchaToken: "tok-123" } });
+  });
+
+  it("superado el límite no llega a Supabase", async () => {
+    abuse.rateLimit.mockResolvedValue(false);
+    expect((await login(null, form(ok)))?.error).toContain("Espera un minuto");
+    expect(db.client.auth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it("captcha rechazado por Supabase: mensaje claro", async () => {
+    db.client.auth.signInWithPassword.mockResolvedValueOnce({ error: { status: 400, code: "captcha_failed", message: "captcha protection: request disallowed" } });
+    expect((await login(null, form(ok)))?.error).toContain("robot");
+  });
+
+  it("la recuperación limita por IP y manda el token", async () => {
+    await requestPasswordReset("carlos@isf.test", "tok-9");
+    expect(abuse.rateLimit).toHaveBeenCalledWith("AUTH_LIMITER", "reset:203.0.113.7");
+    expect(db.client.auth.resetPasswordForEmail).toHaveBeenCalledWith("carlos@isf.test", expect.objectContaining({ captchaToken: "tok-9" }));
+  });
+
+  it("recuperación sobre el límite no envía correos", async () => {
+    abuse.rateLimit.mockResolvedValue(false);
+    expect((await requestPasswordReset("carlos@isf.test"))?.error).toContain("Espera un minuto");
+    expect(db.client.auth.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
 });
 afterEach(() => vi.unstubAllEnvs());
 

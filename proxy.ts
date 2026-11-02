@@ -3,12 +3,25 @@
 // decide qué datos ve y cambia cada uno.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { buildCsp, createNonce, CSP_HEADER, CSP_REPORT_PATH } from "./lib/csp";
 import { SESSION_COOKIE } from "./lib/supabase/env";
 
-const PUBLIC_PATHS = ["/login", "/auth/"];
+// Los reportes de CSP llegan también desde /login (sin sesión): no se redirigen.
+const PUBLIC_PATHS = ["/login", "/auth/", CSP_REPORT_PATH];
 
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // CSP con nonce nuevo por petición (lib/csp.ts). Next lo lee del encabezado de la PETICIÓN y lo
+  // aplica a sus scripts; el de la RESPUESTA es el que hace cumplir el navegador.
+  const nonce = createNonce();
+  const csp = buildCsp({ nonce });
+  const next = () => {
+    const headers = new Headers(request.headers); // Incluye las cookies refrescadas por setAll.
+    headers.set(CSP_HEADER, csp);
+    headers.set("x-nonce", nonce);
+    return NextResponse.next({ request: { headers } });
+  };
+
+  let response = next();
 
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookieOptions: SESSION_COOKIE,
@@ -18,7 +31,7 @@ export async function proxy(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = next();
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
@@ -37,6 +50,7 @@ export async function proxy(request: NextRequest) {
     return redirect;
   }
 
+  response.headers.set(CSP_HEADER, csp);
   return response;
 }
 

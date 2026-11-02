@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { logout } from "@/app/actions/auth";
 import { usePanel } from "./panel-provider";
 
-const TITLES: Record<string, string> = { "/": "Resumen", "/propiedades": "Propiedades", "/clientes": "Clientes", "/matches": "Matches", "/visitas": "Visitas", "/asesores": "Asesores", "/zonas": "Zonas", "/perfil": "Mi perfil" };
+const TITLES: Record<string, string> = { "/": "Resumen", "/propiedades": "Propiedades", "/clientes": "Clientes", "/matches": "Matches", "/visitas": "Visitas", "/asesores": "Asesores", "/zonas": "Zonas", "/actividad": "Actividad del sitio", "/perfil": "Mi perfil" };
 
 export function AppShell({ children, siteUrl }: { children: ReactNode; siteUrl: string }) {
   const { me, isAdmin, properties, clients, matches, visits, team, zones } = usePanel();
@@ -20,7 +20,7 @@ export function AppShell({ children, siteUrl }: { children: ReactNode; siteUrl: 
     ["/clientes", "Clientes", "ph-users", clients.filter((c) => c.status === "Nuevo").length],
     ["/matches", "Matches", "ph-sparkle", matches.length],
     ["/visitas", "Visitas", "ph-calendar-check", visits.filter((v) => v.status === "Pendiente").length],
-    ...(isAdmin ? ([["/asesores", "Asesores", "ph-users-three", team.length], ["/zonas", "Zonas", "ph-map-pin-area", zones.length]] as [string, string, string, number][]) : []),
+    ...(isAdmin ? ([["/asesores", "Asesores", "ph-users-three", team.length], ["/zonas", "Zonas", "ph-map-pin-area", zones.length], ["/actividad", "Actividad", "ph-chart-line-up", 0]] as [string, string, string, number][]) : []),
     ["/perfil", "Mi perfil", "ph-user-circle"],
   ];
   const section = "/" + (pathname.split("/")[1] ?? "");

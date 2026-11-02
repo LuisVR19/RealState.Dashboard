@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import { connection } from "next/server";
 import "@phosphor-icons/web/regular";
 import "@phosphor-icons/web/fill";
 import "./styles/ds.css";
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Todo el panel se renderiza por petición: la CSP lleva un nonce nuevo en cada una (proxy.ts) y una
+  // página prerenderizada en el build no lo tendría, así que sus scripts quedarían bloqueados.
+  await connection();
   return (
     <html lang="es" className={geist.variable}>
       <body>{children}</body>

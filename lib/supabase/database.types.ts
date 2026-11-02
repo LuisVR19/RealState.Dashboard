@@ -968,6 +968,8 @@ export type Database = {
       }
       set_owner: { Args: { p_agent_id: string }; Returns: undefined }
       storage_folder_uuid: { Args: { p_name: string }; Returns: string }
+      get_site_activity: { Args: { p_from: string; p_to: string }; Returns: Json }
+      track_site_events: { Args: { p_events: Json; p_secret: string }; Returns: number }
     }
     Enums: {
       agent_role: "Asesor" | "Admin"

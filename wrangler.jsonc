@@ -9,6 +9,14 @@
 		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
+	// Workers Logs: guarda console.* e invocaciones para buscarlos en el dashboard
+	// (Workers & Pages → realstate-dashboard → Observability). Plan gratis: 200k eventos/día, 3 días.
+	"observability": {
+		"logs": {
+			"enabled": true,
+			"invocation_logs": true
+		}
+	},
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

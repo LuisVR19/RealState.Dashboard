@@ -271,3 +271,16 @@ img { max-width: none; }
 .share-target { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: var(--radius-md); border: 1px solid var(--color-divider); color: var(--color-text); text-decoration: none; font-size: 12px; }
 .share-target:hover { border-color: var(--color-accent); color: var(--color-text); }
 .share-target > i { font-size: 22px; color: var(--color-accent); }
+
+/* — actividad del sitio (app/(app)/actividad, components/ActivityChart) — */
+.kpi-delta { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-neutral-400); }
+.activity-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+/* Barras: una serie, 2px de separación, punta redondeada de 4px apoyada en la línea base. */
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 140px; border-bottom: 1px solid var(--color-divider); }
+.bar-slot { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+.bar { width: 100%; background: var(--color-accent-500); border-radius: 4px 4px 0 0; }
+.bar-slot:hover .bar { background: var(--color-accent-300); }
+.bars-axis { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--color-neutral-500); }
+/* Etiqueta de columna visible solo en pantallas chicas (en escritorio la da el encabezado de la tabla). */
+.only-mobile { color: var(--color-neutral-500); }
+@media (min-width: 1100px) { .only-mobile { display: none; } }

@@ -284,3 +284,73 @@ img { max-width: none; }
 /* Etiqueta de columna visible solo en pantallas chicas (en escritorio la da el encabezado de la tabla). */
 .only-mobile { color: var(--color-neutral-500); }
 @media (min-width: 1100px) { .only-mobile { display: none; } }
+
+/* — publicidad (components/AdsManager.tsx, dialogs/AdModal.tsx, dialogs/AdvertiserModal.tsx, AdPreview.tsx) — */
+.field-label { display: block; font-size: 12px; margin-bottom: 5px; color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.ads-main { flex: 1 1 300px; min-width: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.ads-col-state { flex: 0 0 120px; }
+.ads-col-dates { flex: 0 0 130px; }
+.ads-col-stats { flex: 0 0 150px; display: flex; flex-direction: column; gap: 2px; }
+.ads-col-actions { flex: 0 0 112px; }
+.ads-head .ads-col-stats { display: block; }
+@media (max-width: 1099px) { .ads-col-state, .ads-col-dates, .ads-col-stats { flex: 0 0 auto; } .ads-col-actions { flex: 1 0 auto; } }
+
+/* modal de anuncio */
+.adm-cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+@media (max-width: 899px) { .adm-cols { grid-template-columns: minmax(0, 1fr); } .adm-preview { position: static !important; order: -1; } }
+.adm-preview { position: sticky; top: 0; display: flex; flex-direction: column; gap: 10px; }
+.adm-preview-stage { padding: 18px; border-radius: var(--radius-lg); background: var(--color-neutral-900); display: flex; justify-content: center; }
+.adm-preview-stage.is-search_card > * { width: min(260px, 100%); }
+.adm-preview-stage.is-home_banner > *, .adm-preview-stage.is-detail_services > * { width: 100%; }
+.adm-label-row { display: flex !important; justify-content: space-between; align-items: baseline; }
+.adm-count { font-size: 11px; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; }
+.adm-count.is-near { color: #8a5a12; }
+.adm-placements { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.adm-placement { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-divider); background: var(--color-surface); color: var(--color-text); font: inherit; text-align: left; cursor: pointer; }
+.adm-placement:hover { border-color: var(--color-neutral-500); }
+.adm-placement.is-on { border-color: var(--color-accent); background: var(--color-accent-900); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.adm-placement > i { font-size: 20px; color: var(--color-accent); }
+.adm-placement-label { font-size: 13px; font-weight: 500; }
+.adm-placement-where { font-size: 11.5px; line-height: 1.35; color: var(--color-neutral-400); }
+.adm-icons { display: flex; flex-wrap: wrap; gap: 6px; }
+.adm-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-md); border: 1px solid var(--color-divider); background: var(--color-surface); color: var(--color-neutral-300); cursor: pointer; font-size: 18px; }
+.adm-icon:hover { border-color: var(--color-neutral-500); }
+.adm-icon.is-on { border-color: var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); }
+.adm-warn { display: flex; gap: 6px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius-md); background: #f6efe1; color: #7a5a12; font-size: 12.5px; }
+
+/* modal de marca */
+.adm-brand-head { display: flex; align-items: flex-end; gap: 14px; }
+.adm-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.adm-swatch { width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+.adm-swatch.is-on { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent); }
+.adm-swatch-custom { position: relative; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; cursor: pointer; background: conic-gradient(#e5484d, #f5a524, #46a758, #0090ff, #8e4ec6, #e5484d); }
+.adm-swatch-custom > input { position: absolute; inset: -6px; width: 42px; height: 42px; opacity: 0; cursor: pointer; }
+.adm-toggle-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--color-neutral-900); }
+
+/* vista previa (misma jerarquía que el sitio público) */
+.adp-logo { flex: none; display: grid; place-items: center; overflow: hidden; border-radius: var(--radius-md); background: var(--ad); color: #fff; font-weight: 600; letter-spacing: .02em; }
+.adp-logo > img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.adp-pill { align-self: flex-start; display: inline-flex; align-items: center; height: 19px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--color-divider); font-size: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--color-neutral-500); background: var(--color-bg); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.adp-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-accent); }
+.adp-banner { position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; padding: 14px 38px 14px 14px; border-radius: var(--radius-lg); background: linear-gradient(100deg, var(--color-surface) 50%, color-mix(in srgb, var(--ad) 9%, var(--color-surface))); box-shadow: var(--shadow-sm); }
+.adp-banner-mark { position: absolute; right: -16px; bottom: -28px; font-size: 120px; color: var(--ad); opacity: .07; pointer-events: none; }
+.adp-banner-text { position: relative; flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.adp-banner-headline { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; text-wrap: balance; }
+.adp-banner-body { font-size: 12px; color: var(--color-neutral-400); text-wrap: pretty; }
+.adp-banner-cta { position: relative; height: 34px; padding: 0 12px; font-size: 13px; background: var(--color-surface); pointer-events: none; }
+.adp-banner-close { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; display: grid; place-items: center; color: var(--color-neutral-500); font-size: 12px; }
+.adp-card { display: flex; flex-direction: column; }
+.adp-card-media { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); background: linear-gradient(150deg, color-mix(in srgb, var(--ad) 72%, #fff) 0%, var(--ad) 70%); }
+.adp-card-media > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.adp-card-icon { position: absolute; right: -12px; top: -8px; font-size: 130px; color: rgba(255, 255, 255, .16); }
+.adp-card-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10, 12, 14, .55) 0%, rgba(10, 12, 14, 0) 60%); }
+.adp-card-tag { position: absolute; top: 8px; left: 8px; height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: var(--radius-sm); font-size: 10.5px; font-weight: 500; background: color-mix(in srgb, var(--color-bg) 88%, transparent); color: var(--color-neutral-300); }
+.adp-card-headline { position: absolute; left: 12px; right: 12px; bottom: 10px; color: #fff; font-size: 16px; font-weight: 500; line-height: 1.25; text-wrap: balance; }
+.adp-card-body { display: flex; flex-direction: column; gap: 6px; padding: 10px 2px 2px; }
+.adp-card-body > p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--color-neutral-400); }
+.adp-card-brand { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; }
+.adp-service { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+.adp-service-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.adp-service-brand { font-size: 11px; color: var(--color-neutral-500); }
+.adp-service-title { font-size: 14px; font-weight: 500; }
+.adp-service-sub { font-size: 12px; line-height: 1.4; color: var(--color-neutral-400); }

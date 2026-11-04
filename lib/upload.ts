@@ -1,6 +1,6 @@
 // Subida de imágenes a Supabase Storage desde el navegador, con la sesión del asesor.
 // Las políticas de cada bucket deciden quién puede escribir:
-// property-images/<id de propiedad>/… solo el dueño o un admin; zone-images/… solo un admin.
+// property-images/<id de propiedad>/… solo el dueño o un admin; zone-images/… y ad-images/… solo un admin.
 import { createClient } from "./supabase/client";
 
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
@@ -11,7 +11,7 @@ export const imageProblem = (f: File) =>
   !TYPES[f.type] ? `${f.name}: solo JPG, PNG o WebP.` : f.size > MAX_BYTES ? `${f.name}: máximo 5 MB.` : null;
 
 /** Sube el archivo y devuelve su URL pública. */
-export async function uploadImage(bucket: "property-images" | "zone-images", folder: string, file: File): Promise<string> {
+export async function uploadImage(bucket: "property-images" | "zone-images" | "ad-images", folder: string, file: File): Promise<string> {
   const problem = imageProblem(file);
   if (problem) throw new Error(problem);
   const supabase = createClient();

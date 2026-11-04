@@ -20,7 +20,7 @@ export function AppShell({ children, siteUrl }: { children: ReactNode; siteUrl: 
     ["/clientes", "Clientes", "ph-users", clients.filter((c) => c.status === "Nuevo").length],
     ["/matches", "Matches", "ph-sparkle", matches.length],
     ["/visitas", "Visitas", "ph-calendar-check", visits.filter((v) => v.status === "Pendiente").length],
-    ...(isAdmin ? ([["/asesores", "Asesores", "ph-users-three", team.length], ["/zonas", "Zonas", "ph-map-pin-area", zones.length], ["/actividad", "Actividad", "ph-chart-line-up", 0]] as [string, string, string, number][]) : []),
+    ...(isAdmin ? ([["/asesores", "Asesores", "ph-users-three", team.length], ["/zonas", "Zonas", "ph-map-pin-area", zones.length], ["/publicidad", "Publicidad", "ph-megaphone", 0], ["/actividad", "Actividad", "ph-chart-line-up", 0]] as [string, string, string, number][]) : []),
     ["/perfil", "Mi perfil", "ph-user-circle"],
   ];
   const section = "/" + (pathname.split("/")[1] ?? "");

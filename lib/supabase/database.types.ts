@@ -14,6 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_daily_stats: {
+        Row: {
+          ad_id: string
+          clicks: number
+          day: string
+          dismissals: number
+          impressions: number
+        }
+        Insert: {
+          ad_id: string
+          clicks?: number
+          day: string
+          dismissals?: number
+          impressions?: number
+        }
+        Update: {
+          ad_id?: string
+          clicks?: number
+          day?: string
+          dismissals?: number
+          impressions?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_daily_stats_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads: {
+        Row: {
+          advertiser_id: string
+          body: string
+          cantons: Database["public"]["Enums"]["canton"][]
+          created_at: string
+          created_by: string | null
+          cta: string
+          ends_on: string | null
+          headline: string
+          href: string
+          icon: string
+          id: string
+          image_url: string | null
+          placement: Database["public"]["Enums"]["ad_placement"]
+          starts_on: string | null
+          status: Database["public"]["Enums"]["ad_status"]
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          advertiser_id: string
+          body?: string
+          cantons?: Database["public"]["Enums"]["canton"][]
+          created_at?: string
+          created_by?: string | null
+          cta?: string
+          ends_on?: string | null
+          headline: string
+          href: string
+          icon?: string
+          id?: string
+          image_url?: string | null
+          placement: Database["public"]["Enums"]["ad_placement"]
+          starts_on?: string | null
+          status?: Database["public"]["Enums"]["ad_status"]
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          advertiser_id?: string
+          body?: string
+          cantons?: Database["public"]["Enums"]["canton"][]
+          created_at?: string
+          created_by?: string | null
+          cta?: string
+          ends_on?: string | null
+          headline?: string
+          href?: string
+          icon?: string
+          id?: string
+          image_url?: string | null
+          placement?: Database["public"]["Enums"]["ad_placement"]
+          starts_on?: string | null
+          status?: Database["public"]["Enums"]["ad_status"]
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_advertiser_id_fkey"
+            columns: ["advertiser_id"]
+            isOneToOne: false
+            referencedRelation: "advertisers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      advertisers: {
+        Row: {
+          active: boolean
+          color: string
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          logo_url: string | null
+          name: string
+          notes: string
+          updated_at: string
+          website: string
+          whatsapp: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          notes?: string
+          updated_at?: string
+          website?: string
+          whatsapp?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          notes?: string
+          updated_at?: string
+          website?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       agent_reviews: {
         Row: {
           agent_id: string
@@ -824,6 +976,26 @@ export type Database = {
       }
     }
     Functions: {
+      get_active_ads: {
+        Args: {
+          p_canton?: Database["public"]["Enums"]["canton"]
+          p_placement: Database["public"]["Enums"]["ad_placement"]
+        }
+        Returns: {
+          body: string
+          brand: string
+          color: string
+          cta: string
+          headline: string
+          href: string
+          icon: string
+          id: string
+          image_url: string | null
+          logo_url: string | null
+          placement: Database["public"]["Enums"]["ad_placement"]
+        }[]
+      }
+      track_ad_events: { Args: { p_events: Json; p_secret: string }; Returns: number }
       agent_can_access_client: {
         Args: { p_client_id: string }
         Returns: boolean
@@ -972,6 +1144,8 @@ export type Database = {
       track_site_events: { Args: { p_events: Json; p_secret: string }; Returns: number }
     }
     Enums: {
+      ad_placement: "home_banner" | "search_card" | "detail_services"
+      ad_status: "Borrador" | "Activa" | "Pausada" | "Finalizada"
       agent_role: "Asesor" | "Admin"
       canton:
         | "Cartago"
@@ -1139,6 +1313,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ad_placement: ["home_banner", "search_card", "detail_services"],
+      ad_status: ["Borrador", "Activa", "Pausada", "Finalizada"],
       agent_role: ["Asesor", "Admin"],
       canton: [
         "Cartago",

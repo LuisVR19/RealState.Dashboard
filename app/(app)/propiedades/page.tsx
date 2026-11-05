@@ -7,7 +7,7 @@ import { deleteProperty, duplicateProperty } from "@/app/actions/properties";
 import { usePanel } from "@/components/panel-provider";
 import { CountTab, PageHead, SearchInput, StatusTag } from "@/components/ui";
 import { ago } from "@/lib/dates";
-import { crc, isClosed, OP_LABEL, pricePeriod, PROPERTY_STATUS_STYLE } from "@/lib/format";
+import { crc, isClosed, OP_LABEL, placeLine, pricePeriod, PROPERTY_STATUS_STYLE } from "@/lib/format";
 import type { Operation, Property, PropertyStatus } from "@/lib/types";
 
 type Tab = "Todas" | "Publicada" | "Borrador" | "Pausada" | "Cerrada";
@@ -25,7 +25,7 @@ function PropertiesView() {
   const [op, setOp] = useState<Operation | "Todas">("Todas");
   const [agent, setAgent] = useState("Todos");
   const nq = norm(q.trim());
-  const filtered = properties.filter((p) => (op === "Todas" || p.operation === op) && (agent === "Todos" || p.agentId === agent) && (!nq || norm(`${p.title} ${p.zone} ${p.canton} ${p.code}`).includes(nq)));
+  const filtered = properties.filter((p) => (op === "Todas" || p.operation === op) && (agent === "Todos" || p.agentId === agent) && (!nq || norm(`${p.title} ${p.zone} ${p.canton} ${p.province} ${p.country} ${p.code}`).includes(nq)));
   const count = (k: Tab) => filtered.filter((p) => inTab(p.status, k)).length;
   const list = filtered.filter((p) => inTab(p.status, status));
   const duplicate = async (p: Property) => {
@@ -57,7 +57,7 @@ function PropertiesView() {
             <div key={p.id} className="table-row is-hover">
               <div className="prop-cell" onClick={() => edit(p)}>
                 <div className="thumb" style={{ width: 72, height: 54 }}>{p.images[0] && <img src={p.images[0]} alt="" />}</div>
-                <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.3 }}>{p.title}</span><span className="muted-12">{p.code} · {p.zone}, {p.canton}</span></div>
+                <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.3 }}>{p.title}</span><span className="muted-12">{p.code} · {placeLine(p)}</span></div>
               </div>
               <span className="w130 cell-13">{OP_LABEL[p.operation]} · {p.type}</span>
               <span className="w140" style={{ fontSize: 14, fontWeight: 500 }}>{crc(p.price)}<span style={{ fontSize: 11, fontWeight: 400, color: "var(--color-neutral-500)" }}>{pricePeriod(p) && " " + pricePeriod(p)}</span></span>

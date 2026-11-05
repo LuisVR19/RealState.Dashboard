@@ -8,7 +8,25 @@ export const PROPERTY_STATUSES = Constants.public.Enums.property_status as reado
 const AMENITY_ICON: Record<string, string> = { Piscina: "ph-swimming-pool", Gimnasio: "ph-barbell", "Seguridad 24h": "ph-shield-check", Jardín: "ph-plant", Terraza: "ph-sun-horizon", Amueblado: "ph-armchair", "Pet friendly": "ph-paw-print", "Área social": "ph-users-three", "Parqueo visitas": "ph-car", "Planta eléctrica": "ph-lightning" };
 /** Ícono de una amenidad del catálogo (las nuevas usan uno genérico). */
 export const amenityIcon = (a: Amenity) => AMENITY_ICON[a] ?? "ph-check-circle";
+/** Sugerencias iniciales (cantones de Cartago). La ubicación es texto libre: se aceptan ciudades de cualquier país. */
 export const CANTONS: readonly Canton[] = ["Paraíso", "Cartago", "Oreamuno", "La Unión", "El Guarco", "Alvarado", "Jiménez", "Turrialba"];
+export const DEFAULT_COUNTRY = "Costa Rica";
+export const COUNTRY_SUGGESTIONS: readonly string[] = ["Costa Rica", "Panamá", "Nicaragua", "México", "Estados Unidos", "Colombia", "España"];
+
+/** Valores únicos, sin vacíos, en orden alfabético (es). */
+export const uniqueSorted = (xs: (string | null | undefined)[]) =>
+  [...new Set(xs.map((x) => x?.trim()).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "es"));
+
+/** Ubicaciones conocidas: las del inventario más las sugerencias base. */
+export const knownPlaces = (props: Pick<Property, "canton" | "province" | "country">[]) => ({
+  cantons: uniqueSorted([...props.map((p) => p.canton), ...CANTONS]),
+  provinces: uniqueSorted([...props.map((p) => p.province), "Cartago"]),
+  countries: uniqueSorted([...props.map((p) => p.country), ...COUNTRY_SUGGESTIONS]),
+});
+
+/** "Zona, cantón" y el país si no es Costa Rica. */
+export const placeLine = (p: Pick<Property, "zone" | "canton" | "country">) =>
+  [p.zone, p.canton, p.country && p.country !== DEFAULT_COUNTRY ? p.country : null].filter(Boolean).join(", ");
 export const CLIENT_STATUSES = Constants.public.Enums.client_status as readonly ClientStatus[];
 export const VISIT_STATUSES = Constants.public.Enums.visit_status as readonly VisitStatus[];
 
@@ -59,7 +77,7 @@ export const prefShort = (f: ClientPreferences) =>
 export const prefChips = (f: ClientPreferences) =>
   [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation]].concat(
     f.propertyTypes.length ? f.propertyTypes : ["Cualquier tipo"],
-    f.cantons.length ? f.cantons : ["Toda la provincia"],
+    f.cantons.length ? f.cantons : ["Cualquier ubicación"],
     [budgetLabel(f)],
     f.minBedrooms ? [f.minBedrooms + "+ habitaciones"] : [],
     f.minBathrooms ? [f.minBathrooms + "+ baños"] : [],

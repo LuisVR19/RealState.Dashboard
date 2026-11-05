@@ -13,7 +13,7 @@ const VISIT_HISTORY_DAYS = 180;
 const MAX_ROWS = 2000;
 
 const PROPERTY_COLUMNS =
-  "id, code, title, description, operation, type, status, featured, tag, canton, zone, address, lat, lng, price, maintenance_fee, " +
+  "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, maintenance_fee, " +
   "bedrooms, bathrooms, area_m2, parking_spaces, guests, floor, year_built, delivery, agent_id, updated_at, " +
   "property_images(url, position), property_amenities(amenities(name))";
 
@@ -42,6 +42,8 @@ const toProperty = (p: any): Property => ({
   status: p.status,
   featured: p.featured,
   tag: opt(p.tag),
+  country: p.country ?? "Costa Rica",
+  province: p.province ?? "",
   canton: p.canton,
   zone: p.zone,
   address: p.address,

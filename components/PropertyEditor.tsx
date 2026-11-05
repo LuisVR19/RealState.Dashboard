@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type DragEvent } from "react";
 import { saveProperty, type PropertyInput } from "@/app/actions/properties";
 import { ago, dayParts } from "@/lib/dates";
-import { amenityIcon, CANTONS, TYPES, VISIT_STATUS_STYLE } from "@/lib/format";
-import type { Canton, Operation, Property, PropertyStatus, PropertyType } from "@/lib/types";
+import { amenityIcon, DEFAULT_COUNTRY, TYPES, VISIT_STATUS_STYLE } from "@/lib/format";
+import type { Operation, Property, PropertyStatus, PropertyType } from "@/lib/types";
 import { imageProblem, uploadImage } from "@/lib/upload";
 import { Chip, toggle } from "./Chip";
 import { usePanel } from "./panel-provider";
@@ -17,7 +17,7 @@ import { DateBadge, StatusTag, Toggle } from "./ui";
 const EditorMap = dynamic(() => import("./EditorMap").then((m) => m.EditorMap), { ssr: false, loading: () => <div className="editor-map" /> });
 
 const blank = (agentId: string): Property => ({
-  id: "", code: "", title: "", description: "", operation: "Venta", type: "Casa", status: "Borrador", featured: false, canton: "Paraíso", zone: "", address: "",
+  id: "", code: "", title: "", description: "", operation: "Venta", type: "Casa", status: "Borrador", featured: false, country: DEFAULT_COUNTRY, province: "Cartago", canton: "Paraíso", zone: "", address: "",
   lat: 9.8385, lng: -83.866, price: 0, bedrooms: 0, bathrooms: 0, areaM2: 0, parkingSpaces: 0, agentId, amenities: [], images: [], updatedAt: "",
 });
 
@@ -31,7 +31,7 @@ type PendingFiles = Map<string, File>;
  * galería final en el orden elegido. Si la subida falla, los datos quedan guardados y se avisa.
  */
 export function PropertyEditor({ property }: { property?: Property }) {
-  const { me, team, isAdmin, visits, today, agentName, open, run, flash, amenities } = usePanel();
+  const { me, team, isAdmin, visits, today, agentName, open, run, flash, amenities, places } = usePanel();
   const router = useRouter();
   const [d, setD] = useState<Property>(() => property ?? blank(me.id));
   const [files, setFiles] = useState<PendingFiles>(() => new Map());
@@ -63,7 +63,7 @@ export function PropertyEditor({ property }: { property?: Property }) {
 
   const input = (x: Property): PropertyInput => ({
     title: x.title, description: x.description, operation: x.operation, type: x.type, status: x.status, featured: x.featured, tag: x.tag,
-    canton: x.canton, zone: x.zone, address: x.address, lat: x.lat, lng: x.lng, price: x.price, maintenanceFee: x.maintenanceFee,
+    country: x.country, province: x.province, canton: x.canton, zone: x.zone, address: x.address, lat: x.lat, lng: x.lng, price: x.price, maintenanceFee: x.maintenanceFee,
     bedrooms: x.bedrooms, bathrooms: x.bathrooms, areaM2: x.areaM2, parkingSpaces: x.parkingSpaces, guests: x.guests, floor: x.floor,
     yearBuilt: x.yearBuilt, delivery: x.delivery, agentId: x.agentId,
     amenityIds: amenities.filter((a) => x.amenities.includes(a.name)).map((a) => a.id),
@@ -169,7 +169,12 @@ export function PropertyEditor({ property }: { property?: Property }) {
           <section className="card stack-14 pad-20">
             <h2 className="h2-16">Ubicación</h2>
             <div className="form-grid form-grid-170">
-              <div className="field"><label>Cantón</label><select className="input h40" value={d.canton} onChange={(e) => set({ canton: e.target.value as Canton })}>{CANTONS.map((c) => <option key={c}>{c}</option>)}</select></div>
+              <div className="field"><label htmlFor="pe-country">País *</label><input id="pe-country" className="input h40" list="pe-countries" maxLength={60} value={d.country} onChange={(e) => set({ country: e.target.value })} placeholder="Costa Rica" /></div>
+              <div className="field"><label htmlFor="pe-province">Provincia o estado</label><input id="pe-province" className="input h40" list="pe-provinces" maxLength={80} value={d.province} onChange={(e) => set({ province: e.target.value })} placeholder="Cartago, Florida, Chiriquí…" /></div>
+              <div className="field"><label htmlFor="pe-canton">Ciudad o cantón *</label><input id="pe-canton" className="input h40" list="pe-cantons" maxLength={80} value={d.canton} onChange={(e) => set({ canton: e.target.value })} placeholder="Paraíso, Miami, Boquete…" /></div>
+              <datalist id="pe-countries">{places.countries.map((c) => <option key={c} value={c} />)}</datalist>
+              <datalist id="pe-provinces">{places.provinces.map((c) => <option key={c} value={c} />)}</datalist>
+              <datalist id="pe-cantons">{places.cantons.map((c) => <option key={c} value={c} />)}</datalist>
               <div className="field"><label>Distrito o barrio *</label><input className="input h40" value={d.zone} onChange={(e) => set({ zone: e.target.value })} placeholder="Santa Lucía" /></div>
               <div className="field"><label>Dirección de referencia</label><input className="input h40" value={d.address} onChange={(e) => set({ address: e.target.value })} placeholder="200 m sur de la iglesia" /></div>
             </div>

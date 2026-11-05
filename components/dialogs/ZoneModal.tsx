@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { saveZone } from "@/app/actions/zones";
-import { CANTONS } from "@/lib/format";
 import type { Canton, FeaturedZone } from "@/lib/types";
 import { uploadImage } from "@/lib/upload";
 import { DialogShell } from "../ui";
@@ -10,9 +9,9 @@ import { usePanel } from "../panel-provider";
 
 /** Crear o editar una zona destacada (`featured_zones`; la imagen va al bucket zone-images o es una URL). */
 export function ZoneModal({ zone: z }: { zone?: FeaturedZone }) {
-  const { close, run, flash } = usePanel();
+  const { close, run, flash, places } = usePanel();
   const [label, setLabel] = useState(z?.label ?? "");
-  const [name, setName] = useState<Canton>(z?.name ?? CANTONS[0]);
+  const [name, setName] = useState<Canton>(z?.name ?? "");
   const [url, setUrl] = useState(z?.imageUrl ?? "");
   const [busy, startBusy] = useTransition();
 
@@ -36,7 +35,10 @@ export function ZoneModal({ zone: z }: { zone?: FeaturedZone }) {
       footer={<div className="dialog-actions"><button className="btn btn-secondary" onClick={close} style={{ height: 40 }}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={busy} style={{ height: 40 }}>{busy ? "Guardando…" : z ? "Guardar cambios" : "Crear zona"}</button></div>}>
       <div className="form-grid">
         <div className="field"><label htmlFor="zm-label">Nombre visible *</label><input id="zm-label" className="input h40" value={label} maxLength={60} onChange={(e) => setLabel(e.target.value)} placeholder="Cachí y Ujarrás" /></div>
-        <div className="field"><label htmlFor="zm-name">Cantón que filtra *</label><select id="zm-name" className="input h40" value={name} onChange={(e) => setName(e.target.value as Canton)}>{CANTONS.map((c) => <option key={c}>{c}</option>)}</select></div>
+        <div className="field"><label htmlFor="zm-name">Ciudad o cantón que filtra *</label>
+          <input id="zm-name" className="input h40" list="zm-places" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Paraíso, Miami, Ciudad de Panamá…" />
+          <datalist id="zm-places">{places.cantons.map((c) => <option key={c} value={c} />)}</datalist>
+        </div>
         <div className="field" style={{ gridColumn: "1 / -1" }}><label htmlFor="zm-url">Imagen *</label>
           <div style={{ display: "flex", gap: 8 }}>
             <input id="zm-url" className="input h40" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… o sube un archivo" />

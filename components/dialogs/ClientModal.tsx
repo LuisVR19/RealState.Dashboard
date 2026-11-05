@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { saveClient } from "@/app/actions/clients";
-import { CANTONS, CLIENT_STATUSES, dots, OP_LABEL, TYPES } from "@/lib/format";
+import { CLIENT_STATUSES, dots, OP_LABEL, TYPES } from "@/lib/format";
+import { PlacePicker } from "../PlacePicker";
 import type { Amenity, Canton, Client, ClientStatus, Operation, PropertyType } from "@/lib/types";
 import { Chip, toggle } from "../Chip";
 import { DialogShell } from "../ui";
@@ -13,7 +14,7 @@ const toAmount = (s: string) => Number(s.replace(/\D/g, "")) || null;
 
 /** Crear o editar un cliente y lo que busca (rpc save_client: cliente + preferencias en una transacción). */
 export function ClientModal({ client: c }: { client?: Client }) {
-  const { close, run, team, isAdmin, amenities, openClient } = usePanel();
+  const { close, run, team, isAdmin, amenities, openClient, places } = usePanel();
   const p = c?.preferences;
   const [name, setName] = useState(c?.name ?? "");
   const [email, setEmail] = useState(c?.email ?? "");
@@ -78,8 +79,8 @@ export function ClientModal({ client: c }: { client?: Client }) {
           <div className="chip-group"><span className="muted-12">Tipo</span>
             <div className="chip-row">{TYPES.map((t) => <Chip key={t} size="sm" label={t} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}</div>
           </div>
-          <div className="chip-group"><span className="muted-12">Cantones</span>
-            <div className="chip-row">{CANTONS.map((k) => <Chip key={k} size="sm" label={k} on={cantons.includes(k)} onClick={() => setCantons(toggle(cantons, k))} />)}</div>
+          <div className="chip-group"><span className="muted-12">Ubicaciones (ciudad o cantón)</span>
+            <PlacePicker value={cantons} onChange={setCantons} suggestions={places.cantons} />
           </div>
           <div className="form-grid form-grid-120">
             <div className="field"><label htmlFor="cm-min">Presupuesto mín. (₡)</label><input id="cm-min" className="input h40" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value)} onBlur={fmt(min, setMin)} placeholder="0" /></div>

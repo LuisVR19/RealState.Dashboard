@@ -50,7 +50,7 @@ export type Database = {
         Row: {
           advertiser_id: string
           body: string
-          cantons: Database["public"]["Enums"]["canton"][]
+          cantons: string[]
           created_at: string
           created_by: string | null
           cta: string
@@ -69,7 +69,7 @@ export type Database = {
         Insert: {
           advertiser_id: string
           body?: string
-          cantons?: Database["public"]["Enums"]["canton"][]
+          cantons?: string[]
           created_at?: string
           created_by?: string | null
           cta?: string
@@ -88,7 +88,7 @@ export type Database = {
         Update: {
           advertiser_id?: string
           body?: string
-          cantons?: Database["public"]["Enums"]["canton"][]
+          cantons?: string[]
           created_at?: string
           created_by?: string | null
           cta?: string
@@ -401,7 +401,7 @@ export type Database = {
         Row: {
           budget_max: number | null
           budget_min: number | null
-          cantons: Database["public"]["Enums"]["canton"][]
+          cantons: string[]
           client_id: string
           max_area_m2: number | null
           min_area_m2: number | null
@@ -416,7 +416,7 @@ export type Database = {
         Insert: {
           budget_max?: number | null
           budget_min?: number | null
-          cantons?: Database["public"]["Enums"]["canton"][]
+          cantons?: string[]
           client_id: string
           max_area_m2?: number | null
           min_area_m2?: number | null
@@ -431,7 +431,7 @@ export type Database = {
         Update: {
           budget_max?: number | null
           budget_min?: number | null
-          cantons?: Database["public"]["Enums"]["canton"][]
+          cantons?: string[]
           client_id?: string
           max_area_m2?: number | null
           min_area_m2?: number | null
@@ -614,7 +614,7 @@ export type Database = {
           id: string
           image_url: string
           label: string
-          name: Database["public"]["Enums"]["canton"]
+          name: string
           position: number
           updated_at: string
           visible: boolean
@@ -624,7 +624,7 @@ export type Database = {
           id?: string
           image_url: string
           label: string
-          name: Database["public"]["Enums"]["canton"]
+          name: string
           position?: number
           updated_at?: string
           visible?: boolean
@@ -634,7 +634,7 @@ export type Database = {
           id?: string
           image_url?: string
           label?: string
-          name?: Database["public"]["Enums"]["canton"]
+          name?: string
           position?: number
           updated_at?: string
           visible?: boolean
@@ -648,7 +648,8 @@ export type Database = {
           area_m2: number | null
           bathrooms: number | null
           bedrooms: number | null
-          canton: Database["public"]["Enums"]["canton"]
+          canton: string
+          country: string
           code: string
           created_at: string
           delivery: string | null
@@ -664,6 +665,7 @@ export type Database = {
           operation: Database["public"]["Enums"]["property_operation"]
           parking_spaces: number
           price: number
+          province: string | null
           published_at: string | null
           search_vector: unknown
           status: Database["public"]["Enums"]["property_status"]
@@ -680,7 +682,8 @@ export type Database = {
           area_m2?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
-          canton: Database["public"]["Enums"]["canton"]
+          canton: string
+          country?: string
           code?: string
           created_at?: string
           delivery?: string | null
@@ -696,6 +699,7 @@ export type Database = {
           operation: Database["public"]["Enums"]["property_operation"]
           parking_spaces?: number
           price: number
+          province?: string | null
           published_at?: string | null
           search_vector?: unknown
           status?: Database["public"]["Enums"]["property_status"]
@@ -712,7 +716,8 @@ export type Database = {
           area_m2?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
-          canton?: Database["public"]["Enums"]["canton"]
+          canton?: string
+          country?: string
           code?: string
           created_at?: string
           delivery?: string | null
@@ -728,6 +733,7 @@ export type Database = {
           operation?: Database["public"]["Enums"]["property_operation"]
           parking_spaces?: number
           price?: number
+          province?: string | null
           published_at?: string | null
           search_vector?: unknown
           status?: Database["public"]["Enums"]["property_status"]
@@ -978,7 +984,7 @@ export type Database = {
     Functions: {
       get_active_ads: {
         Args: {
-          p_canton?: Database["public"]["Enums"]["canton"]
+          p_canton?: string
           p_placement: Database["public"]["Enums"]["ad_placement"]
         }
         Returns: {
@@ -1002,13 +1008,22 @@ export type Database = {
       }
       assign_client_to_me: { Args: { p_client_id: string }; Returns: undefined }
       canton_text: {
-        Args: { p_canton: Database["public"]["Enums"]["canton"] }
+        Args: { p_canton: string }
         Returns: string
       }
       current_agent_id: { Args: never; Returns: string }
       current_client_id: { Args: never; Returns: string }
       delete_client: { Args: { p_id: string }; Returns: undefined }
       duplicate_property: { Args: { p_property_id: string }; Returns: string }
+      get_property_locations: {
+        Args: never
+        Returns: {
+          canton: string
+          country: string
+          province: string
+          total: number
+        }[]
+      }
       get_client_matches: {
         Args: { p_client_id: string }
         Returns: {
@@ -1046,7 +1061,7 @@ export type Database = {
           p_assigned_agent_id: string | null
           p_budget_max: number | null
           p_budget_min: number | null
-          p_cantons: Database["public"]["Enums"]["canton"][]
+          p_cantons: string[]
           p_email: string | null
           p_id: string | null
           p_min_bathrooms: number | null
@@ -1065,7 +1080,7 @@ export type Database = {
           p_amenity_ids?: string[]
           p_budget_max?: number
           p_budget_min?: number
-          p_cantons?: Database["public"]["Enums"]["canton"][]
+          p_cantons?: string[]
           p_max_area_m2?: number
           p_min_area_m2?: number
           p_min_bathrooms?: number
@@ -1090,7 +1105,7 @@ export type Database = {
         Args: {
           p_agent_id?: string
           p_amenities?: string[]
-          p_cantons?: Database["public"]["Enums"]["canton"][]
+          p_cantons?: string[]
           p_center_lat?: number
           p_center_lng?: number
           p_ids?: string[]
@@ -1118,7 +1133,7 @@ export type Database = {
           area_m2: number
           bathrooms: number
           bedrooms: number
-          canton: Database["public"]["Enums"]["canton"]
+          canton: string
           code: string
           cover_url: string
           featured: boolean
@@ -1147,15 +1162,6 @@ export type Database = {
       ad_placement: "home_banner" | "search_card" | "detail_services"
       ad_status: "Borrador" | "Activa" | "Pausada" | "Finalizada"
       agent_role: "Asesor" | "Admin"
-      canton:
-        | "Cartago"
-        | "Paraíso"
-        | "La Unión"
-        | "Jiménez"
-        | "Turrialba"
-        | "Alvarado"
-        | "Oreamuno"
-        | "El Guarco"
       client_source: "sitio_web" | "equipo"
       client_status:
         | "Nuevo"
@@ -1316,16 +1322,6 @@ export const Constants = {
       ad_placement: ["home_banner", "search_card", "detail_services"],
       ad_status: ["Borrador", "Activa", "Pausada", "Finalizada"],
       agent_role: ["Asesor", "Admin"],
-      canton: [
-        "Cartago",
-        "Paraíso",
-        "La Unión",
-        "Jiménez",
-        "Turrialba",
-        "Alvarado",
-        "Oreamuno",
-        "El Guarco",
-      ],
       client_source: ["sitio_web", "equipo"],
       client_status: [
         "Nuevo",

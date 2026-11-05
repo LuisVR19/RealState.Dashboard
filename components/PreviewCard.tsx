@@ -1,4 +1,4 @@
-import { crc, initialsOf, OP_LABEL, priceSuffix, specs } from "@/lib/format";
+import { crc, initialsOf, OP_LABEL, placeLine, priceSuffix, specs } from "@/lib/format";
 import type { Property } from "@/lib/types";
 
 /** Vista previa de la tarjeta tal como se ve en el sitio público (sin interacción). */
@@ -19,7 +19,7 @@ export function PreviewCard({ p, agentName }: { p: Property; agentName: string }
           <span className="muted-12">{p.price ? priceSuffix(p) : ""}</span>
         </div>
         <div className="pcard-title">{p.title || "Título del anuncio"}</div>
-        <div className="pcard-zone"><i className="ph ph-map-pin" style={{ fontSize: 14 }} />{p.zone || "Zona"}, {p.canton}</div>
+        <div className="pcard-zone"><i className="ph ph-map-pin" style={{ fontSize: 14 }} />{placeLine({ ...p, zone: p.zone || "Zona" })}</div>
         <div className="pcard-specs">{specs(p).map((s) => <span key={s.label}><i className={`ph ${s.icon}`} />{s.label}</span>)}</div>
         <div className="pcard-foot">
           <span className="avatar avatar-28">{initialsOf(agentName)}</span>

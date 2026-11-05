@@ -77,7 +77,7 @@ describe("runAction", () => {
 /* ------------------------------------------------------------------ propiedades */
 
 const property = {
-  title: "Casa de prueba", description: "", operation: "Venta", type: "Casa", status: "Borrador", featured: false, canton: "Paraíso",
+  title: "Casa de prueba", description: "", operation: "Venta", type: "Casa", status: "Borrador", featured: false, country: "Costa Rica", province: "Cartago", canton: "Paraíso",
   zone: "Orosi", address: "", lat: 9.79, lng: -83.85, price: 1000, bedrooms: 2, bathrooms: 1, areaM2: 100, parkingSpaces: 1,
   agentId: OTHER_AGENT_ID, amenityIds: [] as string[],
 };
@@ -114,7 +114,10 @@ describe("saveProperty", () => {
     ["operación inválida", { operation: "Permuta" }],
     ["tipo inválido", { type: "Castillo" }],
     ["estado inválido", { status: "Eliminada" }],
-    ["cantón inválido", { canton: "San José" }],
+    ["ciudad vacía", { canton: "  " }],
+    ["ciudad > 80", { canton: "x".repeat(81) }],
+    ["ciudad con HTML", { canton: "<script>" }],
+    ["país > 60", { country: "x".repeat(61) }],
     ["título vacío", { title: "  " }],
     ["título > 140", { title: "x".repeat(141) }],
     ["precio 0", { price: 0 }],
@@ -125,6 +128,17 @@ describe("saveProperty", () => {
   ])("rechaza %s sin llamar a la base", async (_, patch) => {
     expect((await saveProperty(null, { ...property, ...patch } as typeof property, [IMG])).ok).toBe(false);
     expect(db.rpcCall("save_property")).toBeUndefined();
+  });
+
+  it("acepta propiedades fuera de Costa Rica (país, estado y ciudad libres)", async () => {
+    const res = await saveProperty(null, { ...property, country: " Estados Unidos ", province: "Florida", canton: "Miami" }, [IMG]);
+    expect(res.ok).toBe(true);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { country: "Estados Unidos", province: "Florida", canton: "Miami" } });
+  });
+
+  it("sin país usa Costa Rica y sin provincia guarda null", async () => {
+    await saveProperty(null, { ...property, country: "", province: "" }, [IMG]);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { country: "Costa Rica", province: null } });
   });
 
   it("id de propiedad inválido", async () => {
@@ -331,10 +345,16 @@ describe("zonas (solo admin)", () => {
     expect(db.calls).toHaveLength(0);
   });
 
-  it("el admin no guarda una imagen que no sea https ni un cantón inventado", async () => {
+  it("el admin no guarda una imagen que no sea https ni una ubicación vacía o con HTML", async () => {
     as(ADMIN);
     expect((await saveZone(null, { ...zone, imageUrl: "javascript:alert(1)" })).ok).toBe(false);
-    expect((await saveZone(null, { ...zone, name: "Narnia" })).ok).toBe(false);
+    expect((await saveZone(null, { ...zone, name: " " })).ok).toBe(false);
+    expect((await saveZone(null, { ...zone, name: "<b>x</b>" })).ok).toBe(false);
+  });
+
+  it("el admin puede crear una zona de cualquier ciudad", async () => {
+    as(ADMIN);
+    expect((await saveZone(null, { ...zone, name: "Ciudad de Panamá" })).ok).toBe(true);
   });
 
   it("reorderZones valida cada id", async () => {

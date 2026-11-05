@@ -1,7 +1,7 @@
 "use server";
 
 import { check, changed, revalidateSite, runAction, UserError, v } from "@/lib/action";
-import { CANTONS, OPERATIONS, PROPERTY_STATUSES, TYPES } from "@/lib/format";
+import { DEFAULT_COUNTRY, OPERATIONS, PROPERTY_STATUSES, TYPES } from "@/lib/format";
 import type { Json } from "@/lib/supabase/database.types";
 
 export interface PropertyInput {
@@ -12,6 +12,8 @@ export interface PropertyInput {
   status: string;
   featured: boolean;
   tag?: string;
+  country?: string;
+  province?: string;
   canton: string;
   zone: string;
   address: string;
@@ -47,7 +49,9 @@ function toRow(i: PropertyInput) {
     status: v.oneOf(i.status, PROPERTY_STATUSES, "Estado"),
     featured: v.bool(i.featured),
     tag: v.text(i.tag, "La etiqueta", 30),
-    canton: v.oneOf(i.canton, CANTONS, "Cantón"),
+    country: v.place(i.country, "El país", 60) || DEFAULT_COUNTRY,
+    province: v.place(i.province, "La provincia o estado", 80) || null,
+    canton: v.place(i.canton, "La ciudad o cantón", 80, true),
     zone,
     address: v.text(i.address, "La dirección", 200),
     lat: v.num(i.lat, "Latitud", -90, 90, false),

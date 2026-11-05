@@ -1,7 +1,7 @@
 "use server";
 
 import { changed, check, runAction, UserError, v } from "@/lib/action";
-import { CANTONS, CLIENT_STATUSES, TYPES } from "@/lib/format";
+import { CLIENT_STATUSES, TYPES } from "@/lib/format";
 import type { Operation } from "@/lib/types";
 
 const PREF_OPS: readonly (Operation | "Todas")[] = ["Venta", "Alquiler", "Vacacional", "Preventa", "Todas"];
@@ -39,7 +39,7 @@ export async function saveClient(id: string | null, i: ClientInput) {
         p_assigned_agent_id: v.optUuid(i.assignedAgentId, "Asesor"),
         p_operation: v.oneOf(i.operation, PREF_OPS, "Operación"),
         p_property_types: v.list(i.propertyTypes, 10, (t) => v.oneOf(t, TYPES, "Tipo")),
-        p_cantons: v.list(i.cantons, 10, (c) => v.oneOf(c, CANTONS, "Cantón")),
+        p_cantons: [...new Set(v.list(i.cantons, 20, (c) => v.place(c, "La ubicación", 80, true)))],
         p_budget_min: budgetMin,
         p_budget_max: budgetMax,
         p_min_bedrooms: v.num(i.minBedrooms, "Habitaciones", 0, 20) ?? 0,

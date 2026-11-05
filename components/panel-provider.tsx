@@ -5,6 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ActionResult } from "@/lib/action";
 import type { PanelData } from "@/lib/data";
+import { knownPlaces } from "@/lib/format";
 import type { Client, FeaturedZone, Property, TeamUser, Visit } from "@/lib/types";
 import { ClientDrawer } from "./dialogs/ClientDrawer";
 import { ClientModal } from "./dialogs/ClientModal";
@@ -39,6 +40,8 @@ interface PanelContextValue extends PanelData {
   /** Cualquier propiedad del inventario (también de otros asesores). */
   propertyById: (id: string | null | undefined) => Property | undefined;
   propertyTitle: (id: string | null | undefined) => string;
+  /** Ubicaciones conocidas (inventario + sugerencias) para autocompletar y filtrar. */
+  places: { cantons: string[]; provinces: string[]; countries: string[] };
 }
 
 const PanelContext = createContext<PanelContextValue | null>(null);
@@ -101,6 +104,7 @@ export function PanelProvider({ data, today, children }: { data: PanelData; toda
       agentName: (id) => (id && users.get(id)?.name) || "Sin asignar",
       propertyById: (id) => (id ? props.get(id) : undefined),
       propertyTitle: (id) => (id == null ? "Reunión con asesor" : props.get(id)?.title ?? "Propiedad eliminada"),
+      places: knownPlaces(data.catalog),
     };
   }, [data, today, close, flash, run]);
 

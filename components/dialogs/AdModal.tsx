@@ -3,11 +3,10 @@
 import { useState, useTransition } from "react";
 import { saveAd } from "@/app/actions/ads";
 import { AD_ICONS, AD_PLACEMENTS, AD_STATUSES, PLACEMENT_INFO, type AdItem, type AdPlacement, type AdStatus, type Advertiser } from "@/lib/ads";
-import { CANTONS } from "@/lib/format";
 import type { Canton } from "@/lib/types";
 import { uploadImage } from "@/lib/upload";
 import { AdPreview } from "../AdPreview";
-import { Chip, toggle } from "../Chip";
+import { PlacePicker } from "../PlacePicker";
 import { usePanel } from "../panel-provider";
 import { DialogShell } from "../ui";
 
@@ -25,7 +24,7 @@ const Count = ({ value, max }: { value: string; max: number }) => (
 
 /** Crear o editar un anuncio (`ads`). La imagen del creativo va al bucket ad-images o es una URL. */
 export function AdModal({ ad, advertisers, defaultAdvertiserId, onClose }: { ad?: AdItem; advertisers: Advertiser[]; defaultAdvertiserId?: string; onClose: () => void }) {
-  const { run, flash } = usePanel();
+  const { run, flash, places } = usePanel();
   const [advertiserId, setAdvertiserId] = useState(ad?.advertiserId ?? defaultAdvertiserId ?? advertisers[0]?.id ?? "");
   const [placement, setPlacement] = useState<AdPlacement>(ad?.placement ?? "home_banner");
   const [status, setStatus] = useState<AdStatus>(ad?.status ?? "Borrador");
@@ -140,9 +139,9 @@ export function AdModal({ ad, advertisers, defaultAdvertiserId, onClose }: { ad?
           </div>
           <span className="muted-12" style={{ marginTop: -8 }}>Sin fechas sale desde ya y sin fin. Con varios anuncios en el mismo espacio, sale primero el de mayor prioridad.</span>
 
-          <div className="field"><span className="field-label">Cantones</span>
-            <div className="chip-row">{CANTONS.map((c) => <Chip key={c} size="sm" label={c} on={cantons.includes(c)} onClick={() => setCantons(toggle(cantons, c))} />)}</div>
-            <span className="muted-12">{cantons.length ? "Solo en fichas de esos cantones y en búsquedas filtradas por uno de ellos." : "Sin cantones: sale en toda la provincia."}</span>
+          <div className="field"><span className="field-label">Ubicaciones (ciudad o cantón)</span>
+            <PlacePicker value={cantons} onChange={setCantons} suggestions={places.cantons} />
+            <span className="muted-12">{cantons.length ? "Solo en fichas de esas ubicaciones y en búsquedas filtradas por una de ellas." : "Sin ubicaciones: sale en todo el sitio."}</span>
           </div>
         </div>
 

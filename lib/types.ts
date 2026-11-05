@@ -7,7 +7,8 @@ type Enums = Database["public"]["Enums"];
 export type Operation = Enums["property_operation"];
 export type PropertyType = Enums["property_type"];
 export type PropertyStatus = Enums["property_status"];
-export type Canton = Enums["canton"];
+/** Ciudad / cantón / municipio (texto libre: cualquier país). */
+export type Canton = string;
 export type Role = Enums["agent_role"];
 export type ClientStatus = Enums["client_status"];
 export type ClientSource = Enums["client_source"];
@@ -52,6 +53,10 @@ export interface Property {
   status: PropertyStatus;
   featured: boolean;
   tag?: string;
+  /** País (por defecto Costa Rica). */
+  country: string;
+  /** Provincia, estado o región (opcional). */
+  province: string;
   canton: Canton;
   zone: string;
   address: string;

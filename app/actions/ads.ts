@@ -5,7 +5,6 @@
 // revalidate_site de la base hace lo mismo por si el cambio llega por otra vía.
 import { changed, check, revalidateSite, runAction, UserError, v } from "@/lib/action";
 import { AD_ICONS, AD_PLACEMENTS, AD_STATUSES, type AdPlacement, type AdStatus } from "@/lib/ads";
-import { CANTONS } from "@/lib/format";
 import type { Canton } from "@/lib/types";
 
 const admin = { adminOnly: true };
@@ -103,7 +102,7 @@ function adRow(i: AdInput) {
     starts_on: startsOn,
     ends_on: endsOn,
     weight: v.num(i.weight, "La prioridad", 0, 100) ?? 50,
-    cantons: v.list(i.cantons, CANTONS.length, (c) => v.oneOf(c, CANTONS, "Cantón")),
+    cantons: [...new Set(v.list(i.cantons, 30, (c) => v.place(c, "La ubicación", 80, true)))],
   };
 }
 

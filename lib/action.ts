@@ -96,6 +96,12 @@ export const v = {
     if (s.length > max) throw new UserError(`${label}: máximo ${max} caracteres.`);
     return s;
   },
+  /** Nombre de lugar (ciudad, cantón, provincia, país): texto libre de una línea. */
+  place(x: unknown, label: string, max = 80, required = false): string {
+    const s = v.text(x, label, max, required).replace(/\s+/g, " ");
+    if (/[\u0000-\u001f\u007f<>]/.test(s)) throw new UserError(`${label}: contiene caracteres no válidos.`);
+    return s;
+  },
   num(x: unknown, label: string, min: number, max: number, int = true): number | null {
     if (x == null || x === "") return null;
     const n = Number(x);

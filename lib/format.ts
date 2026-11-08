@@ -1,11 +1,33 @@
 import { Constants } from "./supabase/database.types";
-import type { Amenity, Canton, ClientPreferences, ClientStatus, Operation, Property, PropertyStatus, PropertyType, VisitStatus } from "./types";
+import type { Amenity, Canton, Category, ClientPreferences, ClientStatus, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, Transmission, VisitStatus } from "./types";
 
 export const OP_LABEL: Record<Operation, string> = { Venta: "Venta", Alquiler: "Alquiler", Vacacional: "Alquiler vacacional", Preventa: "Preventa" };
 export const OPERATIONS = Constants.public.Enums.property_operation as readonly Operation[];
 export const TYPES = Constants.public.Enums.property_type as readonly PropertyType[];
 export const PROPERTY_STATUSES = Constants.public.Enums.property_status as readonly PropertyStatus[];
-const AMENITY_ICON: Record<string, string> = { Piscina: "ph-swimming-pool", Gimnasio: "ph-barbell", "Seguridad 24h": "ph-shield-check", Jardín: "ph-plant", Terraza: "ph-sun-horizon", Amueblado: "ph-armchair", "Pet friendly": "ph-paw-print", "Área social": "ph-users-three", "Parqueo visitas": "ph-car", "Planta eléctrica": "ph-lightning" };
+
+// -----------------------------------------------------------------------------
+// Categorías (inmueble / vehículo). Mismas reglas que public.type_category y el CHECK de la base.
+// -----------------------------------------------------------------------------
+export const CATEGORIES = Constants.public.Enums.listing_category as readonly Category[];
+export const CATEGORY_LABEL: Record<Category, string> = { Inmueble: "Inmuebles", Vehículo: "Vehículos" };
+export const CATEGORY_ICON: Record<Category, string> = { Inmueble: "ph-house-line", Vehículo: "ph-car-profile" };
+const VEHICLE_TYPES: readonly PropertyType[] = ["Carro", "Moto", "Pickup", "Camión"];
+export const categoryOf = (t: PropertyType): Category => (VEHICLE_TYPES.includes(t) ? "Vehículo" : "Inmueble");
+export const isVehicle = (p: { type: PropertyType }) => categoryOf(p.type) === "Vehículo";
+export const typesOf = (c: Category) => TYPES.filter((t) => categoryOf(t) === c);
+/** Un vehículo solo se publica en venta o alquiler. */
+export const operationsOf = (c: Category): readonly Operation[] => (c === "Vehículo" ? ["Venta", "Alquiler"] : OPERATIONS);
+export const TRANSMISSIONS = Constants.public.Enums.vehicle_transmission as readonly Transmission[];
+export const FUELS = Constants.public.Enums.vehicle_fuel as readonly Fuel[];
+export const DRIVETRAINS = Constants.public.Enums.vehicle_drivetrain as readonly Drivetrain[];
+/** "Anuncio" en general; "propiedad" / "vehículo" cuando se sabe la categoría. */
+export const itemNoun = (c?: Category | null) => (c === "Vehículo" ? "vehículo" : c === "Inmueble" ? "propiedad" : "anuncio");
+
+const AMENITY_ICON: Record<string, string> = {
+  Piscina: "ph-swimming-pool", Gimnasio: "ph-barbell", "Seguridad 24h": "ph-shield-check", Jardín: "ph-plant", Terraza: "ph-sun-horizon", Amueblado: "ph-armchair", "Pet friendly": "ph-paw-print", "Área social": "ph-users-three", "Parqueo visitas": "ph-car", "Planta eléctrica": "ph-lightning",
+  "Aire acondicionado": "ph-snowflake", "Cámara de retroceso": "ph-video-camera", "Sensores de parqueo": "ph-broadcast", Bluetooth: "ph-bluetooth", "Pantalla táctil": "ph-device-tablet", "Vidrios eléctricos": "ph-arrows-down-up", "Asientos de cuero": "ph-armchair", Sunroof: "ph-sun", "Aros de lujo": "ph-circle-dashed", "Único dueño": "ph-user-check", "Marchamo al día": "ph-seal-check", "RTV al día": "ph-clipboard-text",
+};
 /** Ícono de una amenidad del catálogo (las nuevas usan uno genérico). */
 export const amenityIcon = (a: Amenity) => AMENITY_ICON[a] ?? "ph-check-circle";
 /** Sugerencias iniciales (cantones de Cartago). La ubicación es texto libre: se aceptan ciudades de cualquier país. */
@@ -50,14 +72,25 @@ export const shortCrc = (n: number) => {
 };
 export const decimal = (n: number) => String(n).replace(".", ",");
 export const pricePeriod = (p: Pick<Property, "operation">) => (p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : "");
-export const priceSuffix = (p: Property) => (p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "");
+export const priceSuffix = (p: Property) =>
+  p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : !isVehicle(p) && p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "";
+/** "Toyota Hilux SR" (vehículo) o "" si no hay marca ni modelo. */
+export const vehicleName = (p: Pick<Property, "brand" | "model">) => [p.brand, p.model].filter(Boolean).join(" ");
 export const specs = (p: Property) =>
-  [
-    p.bedrooms ? { icon: "ph-bed", label: `${p.bedrooms} hab.` } : null,
-    p.bathrooms ? { icon: "ph-bathtub", label: decimal(p.bathrooms) + (p.bathrooms === 1 ? " baño" : " baños") } : null,
-    p.areaM2 ? { icon: "ph-ruler", label: `${dots(p.areaM2)} m²` } : null,
-    p.guests ? { icon: "ph-users", label: `${p.guests} huésp.` } : null,
-  ].filter(Boolean) as { icon: string; label: string }[];
+  (isVehicle(p)
+    ? [
+        p.yearBuilt ? { icon: "ph-calendar-blank", label: String(p.yearBuilt) } : null,
+        p.mileageKm != null ? { icon: "ph-gauge", label: `${dots(p.mileageKm)} km` } : null,
+        p.transmission ? { icon: "ph-steering-wheel", label: p.transmission } : null,
+        p.fuel ? { icon: "ph-gas-pump", label: p.fuel } : null,
+      ]
+    : [
+        p.bedrooms ? { icon: "ph-bed", label: `${p.bedrooms} hab.` } : null,
+        p.bathrooms ? { icon: "ph-bathtub", label: decimal(p.bathrooms) + (p.bathrooms === 1 ? " baño" : " baños") } : null,
+        p.areaM2 ? { icon: "ph-ruler", label: `${dots(p.areaM2)} m²` } : null,
+        p.guests ? { icon: "ph-users", label: `${p.guests} huésp.` } : null,
+      ]
+  ).filter(Boolean) as { icon: string; label: string }[];
 export const initialsOf = (n: string) => n.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0].toUpperCase()).join("") || "?";
 export const firstName = (n: string) => n.split(" ")[0];
 
@@ -71,16 +104,28 @@ export const isValidPhone = (s: string) => /^[245678]\d{7}$/.test(normalizePhone
 export const budgetLabel = (f: ClientPreferences) =>
   f.budgetMin || f.budgetMax ? `${f.budgetMin ? shortCrc(f.budgetMin) : "₡0"} – ${f.budgetMax ? shortCrc(f.budgetMax) : "sin tope"}` : "Cualquier presupuesto";
 export const prefShort = (f: ClientPreferences) =>
-  [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation], f.propertyTypes.join(", ") || null, f.cantons.join(", ") || null, f.budgetMin || f.budgetMax ? budgetLabel(f) : null, f.minBedrooms ? f.minBedrooms + "+ hab." : null]
+  [
+    f.category ? CATEGORY_LABEL[f.category] : null,
+    f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation],
+    f.propertyTypes.join(", ") || null,
+    f.cantons.join(", ") || null,
+    f.budgetMin || f.budgetMax ? budgetLabel(f) : null,
+    f.minBedrooms ? f.minBedrooms + "+ hab." : null,
+    f.minYear ? "desde " + f.minYear : null,
+    f.maxMileageKm ? "hasta " + dots(f.maxMileageKm) + " km" : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 export const prefChips = (f: ClientPreferences) =>
-  [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation]].concat(
+  (f.category ? [CATEGORY_LABEL[f.category]] : []).concat(
+    [f.operation === "Todas" ? "Cualquier operación" : OP_LABEL[f.operation]],
     f.propertyTypes.length ? f.propertyTypes : ["Cualquier tipo"],
     f.cantons.length ? f.cantons : ["Cualquier ubicación"],
     [budgetLabel(f)],
     f.minBedrooms ? [f.minBedrooms + "+ habitaciones"] : [],
     f.minBathrooms ? [f.minBathrooms + "+ baños"] : [],
+    f.minYear ? ["Año " + f.minYear + " o más nuevo"] : [],
+    f.maxMileageKm ? ["Hasta " + dots(f.maxMileageKm) + " km"] : [],
     f.requiredAmenities,
   );
 
@@ -90,8 +135,13 @@ export const matchWhy = (p: Property, f: ClientPreferences) => {
   if (f.cantons.length) (f.cantons.includes(p.canton) ? ok : miss).push(p.canton);
   const mn = f.budgetMin || 0, mx = f.budgetMax || 0;
   if (mn || mx) (p.price >= mn * 0.9 && (!mx || p.price <= mx * 1.1) ? ok : miss).push("presupuesto");
-  if (f.minBedrooms) (p.bedrooms >= f.minBedrooms ? ok : miss).push(f.minBedrooms + "+ hab.");
-  if (f.minBathrooms) (p.bathrooms >= f.minBathrooms ? ok : miss).push(f.minBathrooms + "+ baños");
+  if (isVehicle(p)) {
+    if (f.minYear) ((p.yearBuilt ?? 0) >= f.minYear ? ok : miss).push("año " + f.minYear + "+");
+    if (f.maxMileageKm) (p.mileageKm != null && p.mileageKm <= f.maxMileageKm ? ok : miss).push("≤ " + dots(f.maxMileageKm) + " km");
+  } else {
+    if (f.minBedrooms) (p.bedrooms >= f.minBedrooms ? ok : miss).push(f.minBedrooms + "+ hab.");
+    if (f.minBathrooms) (p.bathrooms >= f.minBathrooms ? ok : miss).push(f.minBathrooms + "+ baños");
+  }
   f.requiredAmenities.forEach((a) => (p.amenities.includes(a) ? ok : miss).push(a));
   return (ok.length ? "Coincide: " + ok.join(", ") : "Coincide en operación y tipo") + (miss.length ? " · Falta: " + miss.join(", ") : "");
 };

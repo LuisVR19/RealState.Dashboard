@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type DragEvent } from "react";
 import { saveProperty, type PropertyInput } from "@/app/actions/properties";
 import { ago, dayParts } from "@/lib/dates";
-import { amenityIcon, DEFAULT_COUNTRY, TYPES, VISIT_STATUS_STYLE } from "@/lib/format";
-import type { Operation, Property, PropertyStatus, PropertyType } from "@/lib/types";
+import { amenityIcon, CATEGORIES, CATEGORY_ICON, categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, itemNoun, OP_LABEL, operationsOf, TRANSMISSIONS, typesOf, VISIT_STATUS_STYLE } from "@/lib/format";
+import type { Category, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, Transmission } from "@/lib/types";
 import { imageProblem, uploadImage } from "@/lib/upload";
 import { Chip, toggle } from "./Chip";
 import { usePanel } from "./panel-provider";
@@ -17,7 +17,7 @@ import { DateBadge, StatusTag, Toggle } from "./ui";
 const EditorMap = dynamic(() => import("./EditorMap").then((m) => m.EditorMap), { ssr: false, loading: () => <div className="editor-map" /> });
 
 const blank = (agentId: string): Property => ({
-  id: "", code: "", title: "", description: "", operation: "Venta", type: "Casa", status: "Borrador", featured: false, country: DEFAULT_COUNTRY, province: "Cartago", canton: "Paraíso", zone: "", address: "",
+  id: "", code: "", title: "", description: "", operation: "Venta", type: "Casa", category: "Inmueble", status: "Borrador", featured: false, country: DEFAULT_COUNTRY, province: "Cartago", canton: "Paraíso", zone: "", address: "",
   lat: 9.8385, lng: -83.866, price: 0, bedrooms: 0, bathrooms: 0, areaM2: 0, parkingSpaces: 0, agentId, amenities: [], images: [], updatedAt: "",
 });
 
@@ -30,10 +30,12 @@ type PendingFiles = Map<string, File>;
  * se suben a Storage (property-images/<id>/…, la política exige ser dueño o admin) y (3) se guarda la
  * galería final en el orden elegido. Si la subida falla, los datos quedan guardados y se avisa.
  */
-export function PropertyEditor({ property }: { property?: Property }) {
+export function PropertyEditor({ property, initialCategory = "Inmueble" }: { property?: Property; initialCategory?: Category }) {
   const { me, team, isAdmin, visits, today, agentName, open, run, flash, amenities, places } = usePanel();
   const router = useRouter();
-  const [d, setD] = useState<Property>(() => property ?? blank(me.id));
+  const [d, setD] = useState<Property>(() =>
+    property ?? (initialCategory === "Vehículo" ? { ...blank(me.id), category: "Vehículo", type: "Carro" } : blank(me.id)),
+  );
   const [files, setFiles] = useState<PendingFiles>(() => new Map());
   const [urlIn, setUrlIn] = useState("");
   const [saving, startSaving] = useTransition();
@@ -66,8 +68,22 @@ export function PropertyEditor({ property }: { property?: Property }) {
     country: x.country, province: x.province, canton: x.canton, zone: x.zone, address: x.address, lat: x.lat, lng: x.lng, price: x.price, maintenanceFee: x.maintenanceFee,
     bedrooms: x.bedrooms, bathrooms: x.bathrooms, areaM2: x.areaM2, parkingSpaces: x.parkingSpaces, guests: x.guests, floor: x.floor,
     yearBuilt: x.yearBuilt, delivery: x.delivery, agentId: x.agentId,
-    amenityIds: amenities.filter((a) => x.amenities.includes(a.name)).map((a) => a.id),
+    brand: x.brand, model: x.model, mileageKm: x.mileageKm, transmission: x.transmission, fuel: x.fuel, drivetrain: x.drivetrain,
+    engineCc: x.engineCc, color: x.color, doors: x.doors,
+    // Solo las amenidades / el equipamiento de la categoría del anuncio.
+    amenityIds: amenities.filter((a) => a.category === categoryOf(x.type) && x.amenities.includes(a.name)).map((a) => a.id),
   });
+
+  const cat = categoryOf(d.type);
+  const vehicle = cat === "Vehículo";
+  const noun = itemNoun(cat);
+  /** Cambiar de categoría: primer tipo de la nueva, operación válida y sin amenidades de la otra. */
+  const setCategory = (c: Category) => {
+    if (c === cat) return;
+    const names = new Set(amenities.filter((a) => a.category === c).map((a) => a.name));
+    set({ category: c, type: typesOf(c)[0], operation: operationsOf(c).includes(d.operation) ? d.operation : "Venta", amenities: d.amenities.filter((a) => names.has(a)) });
+  };
+  const text = (k: "brand" | "model" | "color") => (e: ChangeEvent<HTMLInputElement>) => set({ [k]: e.target.value });
 
   const save = () =>
     startSaving(async () => {
@@ -90,7 +106,7 @@ export function PropertyEditor({ property }: { property?: Property }) {
           return router.replace(`/propiedades/${code}`);
         }
       }
-      flash(property ? "Cambios guardados" : `Propiedad ${code} creada`);
+      flash(property ? "Cambios guardados" : `${noun[0].toUpperCase() + noun.slice(1)} ${code} creado${vehicle ? "" : "a"}`);
       router.push("/propiedades");
     });
 
@@ -102,7 +118,7 @@ export function PropertyEditor({ property }: { property?: Property }) {
       <div className="editor-bar">
         <Link href="/propiedades" className="btn btn-secondary btn-icon" aria-label="Volver"><i className="ph ph-arrow-left" style={{ fontSize: 16 }} /></Link>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <h1 style={{ fontSize: 22, margin: 0 }}>{property ? "Editar propiedad" : "Nueva propiedad"}</h1>
+          <h1 style={{ fontSize: 22, margin: 0 }}>{property ? `Editar ${noun}` : vehicle ? "Nuevo vehículo" : "Nueva propiedad"}</h1>
           <span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>{property ? `${property.code} · actualizada ${ago(property.updatedAt).toLowerCase()}` : `Se guardará como ${d.status.toLowerCase()}`}</span>
         </div>
         {property && d.status === "Publicada" && <button className="btn btn-secondary h40" onClick={() => open({ type: "share", property: d })}><i className="ph ph-share-network" style={{ fontSize: 16 }} />Compartir</button>}
@@ -114,18 +130,37 @@ export function PropertyEditor({ property }: { property?: Property }) {
         <div className="stack-16" style={{ minWidth: 0 }}>
           <section className="card stack-14 pad-20">
             <h2 className="h2-16">Información básica</h2>
-            <div className="field"><label>Título del anuncio *</label><input className="input h40" value={d.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ej. Casa con jardín y vista al valle en Paraíso" /></div>
+            <div className="chip-group"><span className="muted-12">¿Qué vas a publicar?</span>
+              <div className="chip-row" role="radiogroup" aria-label="Categoría">
+                {CATEGORIES.map((c) => <Chip key={c} size="md" label={c} icon={CATEGORY_ICON[c]} on={cat === c} onClick={() => setCategory(c)} />)}
+              </div>
+            </div>
+            <div className="field"><label>Título del anuncio *</label><input className="input h40" value={d.title} onChange={(e) => set({ title: e.target.value })} placeholder={vehicle ? "Ej. Toyota Hilux 2021 4x4, único dueño" : "Ej. Casa con jardín y vista al valle en Paraíso"} /></div>
             <div className="form-grid form-grid-170">
-              <div className="field"><label>Operación</label><select className="input h40" value={d.operation} onChange={(e) => set({ operation: e.target.value as Operation })}><option value="Venta">Venta</option><option value="Alquiler">Alquiler</option><option value="Vacacional">Alquiler vacacional</option><option value="Preventa">Preventa</option></select></div>
-              <div className="field"><label>Tipo</label><select className="input h40" value={d.type} onChange={(e) => set({ type: e.target.value as PropertyType })}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+              <div className="field"><label>Operación</label><select className="input h40" value={d.operation} onChange={(e) => set({ operation: e.target.value as Operation })}>{operationsOf(cat).map((o) => <option key={o} value={o}>{OP_LABEL[o]}</option>)}</select></div>
+              <div className="field"><label>Tipo</label><select className="input h40" value={d.type} onChange={(e) => set({ type: e.target.value as PropertyType })}>{typesOf(cat).map((t) => <option key={t}>{t}</option>)}</select></div>
               <div className="field"><label>{priceLabel} *</label><input className="input h40" inputMode="numeric" value={numVal(d.price)} onChange={num("price")} placeholder="0" /></div>
               <div className="field"><label>Etiqueta (opcional)</label><input className="input h40" maxLength={30} value={d.tag ?? ""} onChange={(e) => set({ tag: e.target.value })} placeholder="Exclusiva, Nuevo…" /></div>
             </div>
-            <div className="field"><label>Descripción</label><textarea className="input" value={d.description} onChange={(e) => set({ description: e.target.value })} placeholder="Describe distribución, acabados y entorno." style={{ minHeight: 120 }} /></div>
+            <div className="field"><label>Descripción</label><textarea className="input" value={d.description} onChange={(e) => set({ description: e.target.value })} placeholder={vehicle ? "Estado, mantenimientos, extras y motivo de venta." : "Describe distribución, acabados y entorno."} style={{ minHeight: 120 }} /></div>
           </section>
 
           <section className="card stack-14 pad-20">
             <h2 className="h2-16">Características</h2>
+            {vehicle ? (
+              <div className="form-grid form-grid-130">
+                <div className="field"><label htmlFor="pe-brand">Marca</label><input id="pe-brand" className="input h40" maxLength={40} value={d.brand ?? ""} onChange={text("brand")} placeholder="Toyota" /></div>
+                <div className="field"><label htmlFor="pe-model">Modelo</label><input id="pe-model" className="input h40" maxLength={60} value={d.model ?? ""} onChange={text("model")} placeholder="Hilux SR 2.4" /></div>
+                <div className="field"><label htmlFor="pe-year">Año</label><input id="pe-year" className="input h40" inputMode="numeric" value={numVal(d.yearBuilt)} onChange={num("yearBuilt")} placeholder="2021" /></div>
+                <div className="field"><label htmlFor="pe-km">Kilometraje</label><input id="pe-km" className="input h40" inputMode="numeric" value={d.mileageKm != null ? String(d.mileageKm) : ""} onChange={(e) => { const s = e.target.value.replace(/\D/g, ""); set({ mileageKm: s ? Number(s) : undefined }); }} placeholder="45000" /></div>
+                <div className="field"><label htmlFor="pe-trans">Transmisión</label><select id="pe-trans" className="input h40" value={d.transmission ?? ""} onChange={(e) => set({ transmission: (e.target.value || undefined) as Transmission | undefined })}><option value="">—</option>{TRANSMISSIONS.map((t) => <option key={t}>{t}</option>)}</select></div>
+                <div className="field"><label htmlFor="pe-fuel">Combustible</label><select id="pe-fuel" className="input h40" value={d.fuel ?? ""} onChange={(e) => set({ fuel: (e.target.value || undefined) as Fuel | undefined })}><option value="">—</option>{FUELS.map((t) => <option key={t}>{t}</option>)}</select></div>
+                <div className="field"><label htmlFor="pe-drive">Tracción</label><select id="pe-drive" className="input h40" value={d.drivetrain ?? ""} onChange={(e) => set({ drivetrain: (e.target.value || undefined) as Drivetrain | undefined })}><option value="">—</option>{DRIVETRAINS.map((t) => <option key={t}>{t}</option>)}</select></div>
+                <div className="field"><label htmlFor="pe-cc">Cilindrada (cc)</label><input id="pe-cc" className="input h40" inputMode="numeric" value={numVal(d.engineCc)} onChange={num("engineCc")} placeholder="2400" /></div>
+                <div className="field"><label htmlFor="pe-color">Color</label><input id="pe-color" className="input h40" maxLength={30} value={d.color ?? ""} onChange={text("color")} placeholder="Blanco" /></div>
+                {d.type !== "Moto" && <div className="field"><label htmlFor="pe-doors">Puertas</label><input id="pe-doors" className="input h40" inputMode="numeric" maxLength={1} value={numVal(d.doors)} onChange={num("doors")} placeholder="4" /></div>}
+              </div>
+            ) : (
             <div className="form-grid form-grid-130">
               <div className="field"><label>Habitaciones</label><input className="input h40" inputMode="numeric" value={numVal(d.bedrooms)} onChange={num("bedrooms")} placeholder="0" /></div>
               <div className="field"><label>Baños</label><input className="input h40" inputMode="decimal" value={d.bathrooms ? String(d.bathrooms).replace(".", ",") : ""} onChange={(e) => set({ bathrooms: Number(e.target.value.replace(",", ".").replace(/[^\d.]/g, "")) || 0 })} placeholder="0" /></div>
@@ -137,8 +172,9 @@ export function PropertyEditor({ property }: { property?: Property }) {
               {d.operation === "Vacacional" && <div className="field"><label>Huéspedes</label><input className="input h40" inputMode="numeric" value={numVal(d.guests)} onChange={num("guests")} placeholder="0" /></div>}
               {d.operation === "Preventa" && <div className="field"><label>Entrega estimada</label><input className="input h40" value={d.delivery ?? ""} onChange={(e) => set({ delivery: e.target.value })} placeholder="Junio 2027" /></div>}
             </div>
-            <div className="chip-group"><span className="muted-12">Amenidades</span>
-              <div className="chip-row">{amenities.map(({ id, name: a }) => <Chip key={id} size="md" label={a} icon={amenityIcon(a)} on={d.amenities.includes(a)} onClick={() => set({ amenities: toggle(d.amenities, a) })} />)}</div>
+            )}
+            <div className="chip-group"><span className="muted-12">{vehicle ? "Equipamiento" : "Amenidades"}</span>
+              <div className="chip-row">{amenities.filter((a) => a.category === cat).map(({ id, name: a }) => <Chip key={id} size="md" label={a} icon={amenityIcon(a)} on={d.amenities.includes(a)} onClick={() => set({ amenities: toggle(d.amenities, a) })} />)}</div>
             </div>
           </section>
 
@@ -204,7 +240,7 @@ export function PropertyEditor({ property }: { property?: Property }) {
                   <StatusTag style={VISIT_STATUS_STYLE[v.status]}>{v.status}</StatusTag>
                 </div>
               ))}
-              {!pVisits.length && <span className="muted-13">Sin visitas próximas para esta propiedad.</span>}
+              {!pVisits.length && <span className="muted-13">Sin visitas próximas para {vehicle ? "este vehículo" : "esta propiedad"}.</span>}
               <button className="btn btn-secondary h38" onClick={() => open({ type: "visit", prefill: { propertyId: property.id, agentId: d.agentId } })}><i className="ph ph-calendar-plus" style={{ fontSize: 16 }} />Agendar visita</button>
             </section>
           )}

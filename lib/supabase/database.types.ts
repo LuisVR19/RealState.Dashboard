@@ -291,14 +291,17 @@ export type Database = {
       }
       amenities: {
         Row: {
+          category: Database["public"]["Enums"]["listing_category"]
           id: string
           name: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["listing_category"]
           id?: string
           name: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["listing_category"]
           id?: string
           name?: string
         }
@@ -399,6 +402,9 @@ export type Database = {
       }
       client_preferences: {
         Row: {
+          category: Database["public"]["Enums"]["listing_category"] | null
+          max_mileage_km: number | null
+          min_year: number | null
           budget_max: number | null
           budget_min: number | null
           cantons: string[]
@@ -414,6 +420,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: Database["public"]["Enums"]["listing_category"] | null
+          max_mileage_km?: number | null
+          min_year?: number | null
           budget_max?: number | null
           budget_min?: number | null
           cantons?: string[]
@@ -429,6 +438,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: Database["public"]["Enums"]["listing_category"] | null
+          max_mileage_km?: number | null
+          min_year?: number | null
           budget_max?: number | null
           budget_min?: number | null
           cantons?: string[]
@@ -643,6 +655,16 @@ export type Database = {
       }
       properties: {
         Row: {
+          brand: string | null
+          category: Database["public"]["Enums"]["listing_category"]
+          color: string | null
+          doors: number | null
+          drivetrain: Database["public"]["Enums"]["vehicle_drivetrain"] | null
+          engine_cc: number | null
+          fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
+          mileage_km: number | null
+          model: string | null
+          transmission: Database["public"]["Enums"]["vehicle_transmission"] | null
           address: string
           agent_id: string
           area_m2: number | null
@@ -677,6 +699,16 @@ export type Database = {
           zone: string
         }
         Insert: {
+          brand?: string | null
+          category?: Database["public"]["Enums"]["listing_category"]
+          color?: string | null
+          doors?: number | null
+          drivetrain?: Database["public"]["Enums"]["vehicle_drivetrain"] | null
+          engine_cc?: number | null
+          fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
+          mileage_km?: number | null
+          model?: string | null
+          transmission?: Database["public"]["Enums"]["vehicle_transmission"] | null
           address?: string
           agent_id: string
           area_m2?: number | null
@@ -711,6 +743,16 @@ export type Database = {
           zone: string
         }
         Update: {
+          brand?: string | null
+          category?: Database["public"]["Enums"]["listing_category"]
+          color?: string | null
+          doors?: number | null
+          drivetrain?: Database["public"]["Enums"]["vehicle_drivetrain"] | null
+          engine_cc?: number | null
+          fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
+          mileage_km?: number | null
+          model?: string | null
+          transmission?: Database["public"]["Enums"]["vehicle_transmission"] | null
           address?: string
           agent_id?: string
           area_m2?: number | null
@@ -1015,6 +1057,17 @@ export type Database = {
       current_client_id: { Args: never; Returns: string }
       delete_client: { Args: { p_id: string }; Returns: undefined }
       duplicate_property: { Args: { p_property_id: string }; Returns: string }
+      get_vehicle_brands: {
+        Args: never
+        Returns: {
+          brand: string
+          total: number
+        }[]
+      }
+      type_category: {
+        Args: { p_type: Database["public"]["Enums"]["property_type"] }
+        Returns: Database["public"]["Enums"]["listing_category"]
+      }
       get_property_locations: {
         Args: never
         Returns: {
@@ -1057,6 +1110,9 @@ export type Database = {
       reorder_featured_zones: { Args: { p_ids: string[] }; Returns: undefined }
       save_client: {
         Args: {
+          p_category?: Database["public"]["Enums"]["listing_category"] | null
+          p_max_mileage_km?: number | null
+          p_min_year?: number | null
           p_amenity_ids: string[]
           p_assigned_agent_id: string | null
           p_budget_max: number | null
@@ -1077,6 +1133,9 @@ export type Database = {
       }
       save_my_preferences: {
         Args: {
+          p_category?: Database["public"]["Enums"]["listing_category"] | null
+          p_max_mileage_km?: number | null
+          p_min_year?: number | null
           p_amenity_ids?: string[]
           p_budget_max?: number
           p_budget_min?: number
@@ -1103,6 +1162,13 @@ export type Database = {
       }
       search_properties: {
         Args: {
+          p_brands?: string[]
+          p_category?: Database["public"]["Enums"]["listing_category"]
+          p_fuel?: Database["public"]["Enums"]["vehicle_fuel"]
+          p_max_mileage?: number
+          p_max_year?: number
+          p_min_year?: number
+          p_transmission?: Database["public"]["Enums"]["vehicle_transmission"]
           p_agent_id?: string
           p_amenities?: string[]
           p_cantons?: string[]
@@ -1129,6 +1195,13 @@ export type Database = {
           p_types?: Database["public"]["Enums"]["property_type"][]
         }
         Returns: {
+          brand: string | null
+          category: Database["public"]["Enums"]["listing_category"]
+          fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
+          mileage_km: number | null
+          model: string | null
+          transmission: Database["public"]["Enums"]["vehicle_transmission"] | null
+          year_built: number | null
           agent_id: string
           area_m2: number
           bathrooms: number
@@ -1169,6 +1242,7 @@ export type Database = {
         | "Negociando"
         | "Cerrado"
         | "Inactivo"
+      listing_category: "Inmueble" | "Vehículo"
       preference_operation:
         | "Venta"
         | "Alquiler"
@@ -1189,6 +1263,13 @@ export type Database = {
         | "Local"
         | "Oficina"
         | "Bodega"
+        | "Carro"
+        | "Moto"
+        | "Pickup"
+        | "Camión"
+      vehicle_drivetrain: "4x2" | "4x4" | "AWD"
+      vehicle_fuel: "Gasolina" | "Diésel" | "Híbrido" | "Eléctrico" | "Gas LP"
+      vehicle_transmission: "Manual" | "Automática"
       visit_mode: "Presencial" | "Videollamada"
       visit_source: "sitio_web" | "panel"
       visit_status: "Pendiente" | "Confirmada" | "Realizada" | "Cancelada"
@@ -1330,6 +1411,7 @@ export const Constants = {
         "Cerrado",
         "Inactivo",
       ],
+      listing_category: ["Inmueble", "Vehículo"],
       preference_operation: [
         "Venta",
         "Alquiler",
@@ -1352,7 +1434,14 @@ export const Constants = {
         "Local",
         "Oficina",
         "Bodega",
+        "Carro",
+        "Moto",
+        "Pickup",
+        "Camión",
       ],
+      vehicle_drivetrain: ["4x2", "4x4", "AWD"],
+      vehicle_fuel: ["Gasolina", "Diésel", "Híbrido", "Eléctrico", "Gas LP"],
+      vehicle_transmission: ["Manual", "Automática"],
       visit_mode: ["Presencial", "Videollamada"],
       visit_source: ["sitio_web", "panel"],
       visit_status: ["Pendiente", "Confirmada", "Realizada", "Cancelada"],

@@ -1,7 +1,7 @@
 "use server";
 
 import { changed, check, runAction, UserError, v } from "@/lib/action";
-import { CLIENT_STATUSES, TYPES } from "@/lib/format";
+import { CATEGORIES, CLIENT_STATUSES, TYPES } from "@/lib/format";
 import type { Operation } from "@/lib/types";
 
 const PREF_OPS: readonly (Operation | "Todas")[] = ["Venta", "Alquiler", "Vacacional", "Preventa", "Todas"];
@@ -12,6 +12,8 @@ export interface ClientInput {
   phone: string;
   status: string;
   assignedAgentId: string | null;
+  /** Inmueble, Vehículo o null (cualquiera). */
+  category?: string | null;
   operation: string;
   propertyTypes: string[];
   cantons: string[];
@@ -19,6 +21,8 @@ export interface ClientInput {
   budgetMax: number | null;
   minBedrooms: number;
   minBathrooms: number;
+  minYear?: number | null;
+  maxMileageKm?: number | null;
   amenityIds: string[];
   notes: string;
 }
@@ -46,6 +50,9 @@ export async function saveClient(id: string | null, i: ClientInput) {
         p_min_bathrooms: v.num(i.minBathrooms, "Baños", 0, 20, false) ?? 0,
         p_amenity_ids: v.list(i.amenityIds, 50, (a) => v.uuid(a, "Amenidad")),
         p_notes: v.text(i.notes, "Los comentarios", 2000) || null,
+        p_category: i.category ? v.oneOf(i.category, CATEGORIES, "Categoría") : null,
+        p_min_year: v.num(i.minYear, "El año mínimo", 0, 2100) || null,
+        p_max_mileage_km: v.num(i.maxMileageKm, "El kilometraje máximo", 0, 5_000_000) || null,
       }),
     );
     return { id: newId };

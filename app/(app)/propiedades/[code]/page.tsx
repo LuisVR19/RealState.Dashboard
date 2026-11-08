@@ -3,7 +3,7 @@ import { PropertyEditor } from "@/components/PropertyEditor";
 import { getSession } from "@/lib/auth";
 import { getProperty } from "@/lib/data";
 
-export const metadata = { title: "Editar propiedad · Panel" };
+export const metadata = { title: "Editar anuncio · Panel" };
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ code: string }> }) {
   const { supabase, me } = await getSession();

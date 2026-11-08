@@ -6,6 +6,11 @@ type Enums = Database["public"]["Enums"];
 
 export type Operation = Enums["property_operation"];
 export type PropertyType = Enums["property_type"];
+/** Inmueble o Vehículo. La base la deduce del tipo (public.type_category). */
+export type Category = Enums["listing_category"];
+export type Transmission = Enums["vehicle_transmission"];
+export type Fuel = Enums["vehicle_fuel"];
+export type Drivetrain = Enums["vehicle_drivetrain"];
 export type PropertyStatus = Enums["property_status"];
 /** Ciudad / cantón / municipio (texto libre: cualquier país). */
 export type Canton = string;
@@ -21,6 +26,8 @@ export type Amenity = string;
 export interface AmenityOption {
   id: string;
   name: string;
+  /** Amenidad de inmueble o equipamiento de vehículo. */
+  category: Category;
 }
 
 /** Miembro del equipo (asesor o administrador). */
@@ -50,6 +57,8 @@ export interface Property {
   description: string;
   operation: Operation;
   type: PropertyType;
+  /** Se deriva del tipo (categoryOf); se guarda para filtrar sin recalcular. */
+  category: Category;
   status: PropertyStatus;
   featured: boolean;
   tag?: string;
@@ -71,8 +80,19 @@ export interface Property {
   parkingSpaces: number;
   guests?: number;
   floor?: string;
+  /** Año de construcción (inmueble) o año modelo (vehículo). */
   yearBuilt?: number;
   delivery?: string;
+  // Vehículo
+  brand?: string;
+  model?: string;
+  mileageKm?: number;
+  transmission?: Transmission;
+  fuel?: Fuel;
+  drivetrain?: Drivetrain;
+  engineCc?: number;
+  color?: string;
+  doors?: number;
   agentId: string;
   amenities: Amenity[];
   images: string[];
@@ -80,6 +100,8 @@ export interface Property {
 }
 
 export interface ClientPreferences {
+  /** null = cualquiera. */
+  category: Category | null;
   operation: Operation | "Todas";
   propertyTypes: PropertyType[];
   cantons: Canton[];
@@ -87,6 +109,9 @@ export interface ClientPreferences {
   budgetMax?: number;
   minBedrooms: number;
   minBathrooms: number;
+  /** Vehículo: año mínimo y kilometraje máximo. */
+  minYear?: number;
+  maxMileageKm?: number;
   requiredAmenities: Amenity[];
   notes?: string;
 }

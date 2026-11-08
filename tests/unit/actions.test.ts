@@ -141,6 +141,36 @@ describe("saveProperty", () => {
     expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { country: "Costa Rica", province: null } });
   });
 
+  const vehicle = {
+    ...property, title: "Toyota Hilux 2021", type: "Pickup", brand: " Toyota ", model: "Hilux SR", mileageKm: 45000,
+    transmission: "Manual", fuel: "Diésel", drivetrain: "4x4", engineCc: 2400, color: "Blanco", doors: 4, yearBuilt: 2021,
+  };
+
+  it("guarda un vehículo con sus datos (marca sin espacios sobrantes)", async () => {
+    expect((await saveProperty(null, vehicle, [IMG])).ok).toBe(true);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({
+      p_data: { type: "Pickup", brand: "Toyota", model: "Hilux SR", mileage_km: 45000, transmission: "Manual", fuel: "Diésel", drivetrain: "4x4", engine_cc: 2400, doors: 4, year_built: 2021 },
+    });
+  });
+
+  it("un inmueble no envía datos de vehículo", async () => {
+    await saveProperty(null, { ...property, brand: "Toyota", mileageKm: 10 } as typeof property, [IMG]);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { brand: null, mileage_km: null } });
+  });
+
+  it.each<[string, Record<string, unknown>]>([
+    ["vehículo en alquiler vacacional", { operation: "Vacacional" }],
+    ["vehículo en preventa", { operation: "Preventa" }],
+    ["transmisión inválida", { transmission: "Secuencial" }],
+    ["combustible inválido", { fuel: "Nuclear" }],
+    ["kilometraje negativo", { mileageKm: -1 }],
+    ["marca con HTML", { brand: "<b>" }],
+    ["más de 9 puertas", { doors: 12 }],
+  ])("rechaza %s sin llamar a la base", async (_, patch) => {
+    expect((await saveProperty(null, { ...vehicle, ...patch } as typeof vehicle, [IMG])).ok).toBe(false);
+    expect(db.rpcCall("save_property")).toBeUndefined();
+  });
+
   it("id de propiedad inválido", async () => {
     expect((await saveProperty("1 or 1=1", property, null)).ok).toBe(false);
   });

@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { saveClient } from "@/app/actions/clients";
-import { CLIENT_STATUSES, dots, OP_LABEL, TYPES } from "@/lib/format";
+import { CATEGORIES, CATEGORY_LABEL, CLIENT_STATUSES, dots, OP_LABEL, operationsOf, TYPES, typesOf } from "@/lib/format";
 import { PlacePicker } from "../PlacePicker";
-import type { Amenity, Canton, Client, ClientStatus, Operation, PropertyType } from "@/lib/types";
+import type { Amenity, Canton, Category, Client, ClientStatus, Operation, PropertyType } from "@/lib/types";
 import { Chip, toggle } from "../Chip";
 import { DialogShell } from "../ui";
 import { usePanel } from "../panel-provider";
@@ -21,6 +21,7 @@ export function ClientModal({ client: c }: { client?: Client }) {
   const [phone, setPhone] = useState(c?.phone ?? "");
   const [agentId, setAgentId] = useState(c?.assignedAgentId ?? "");
   const [status, setStatus] = useState<ClientStatus>(c?.status ?? "Nuevo");
+  const [category, setCategory] = useState<Category | null>(c ? (p?.category ?? null) : "Inmueble");
   const [op, setOp] = useState<Op>(p?.operation ?? "Venta");
   const [types, setTypes] = useState<PropertyType[]>(p?.propertyTypes ?? []);
   const [cantons, setCantons] = useState<Canton[]>(p?.cantons ?? []);
@@ -28,9 +29,24 @@ export function ClientModal({ client: c }: { client?: Client }) {
   const [max, setMax] = useState(p?.budgetMax ? dots(p.budgetMax) : "");
   const [beds, setBeds] = useState(p?.minBedrooms ?? 0);
   const [baths, setBaths] = useState(p?.minBathrooms ?? 0);
+  const [minYear, setMinYear] = useState(p?.minYear ? String(p.minYear) : "");
+  const [maxKm, setMaxKm] = useState(p?.maxMileageKm ? dots(p.maxMileageKm) : "");
   const [amen, setAmen] = useState<Amenity[]>(p?.requiredAmenities ?? []);
   const [notes, setNotes] = useState(p?.notes ?? "");
   const [saving, startSaving] = useTransition();
+  const vehicle = category === "Vehículo";
+  // Lo que se ofrece depende de la categoría (null = todo).
+  const typeOptions = category ? typesOf(category) : TYPES;
+  const opOptions: Op[] = [...(category ? operationsOf(category) : (["Venta", "Alquiler", "Vacacional", "Preventa"] as Operation[])), "Todas"];
+  const amenityOptions = category ? amenities.filter((a) => a.category === category) : amenities;
+  const pickCategory = (k: Category | null) => {
+    setCategory(k);
+    if (!k) return;
+    setTypes((t) => t.filter((x) => typesOf(k).includes(x)));
+    if (op !== "Todas" && !operationsOf(k).includes(op)) setOp("Todas");
+    const names = new Set(amenities.filter((a) => a.category === k).map((a) => a.name));
+    setAmen((a) => a.filter((x) => names.has(x)));
+  };
 
   const save = () =>
     startSaving(async () => {
@@ -39,10 +55,11 @@ export function ClientModal({ client: c }: { client?: Client }) {
           saveClient(c?.id ?? null, {
             name, email, phone, status,
             assignedAgentId: agentId || null,
-            operation: op, propertyTypes: types, cantons,
+            category, operation: op, propertyTypes: types, cantons,
             budgetMin: toAmount(min), budgetMax: toAmount(max),
-            minBedrooms: beds, minBathrooms: baths,
-            amenityIds: amenities.filter((a) => amen.includes(a.name)).map((a) => a.id),
+            minBedrooms: vehicle ? 0 : beds, minBathrooms: vehicle ? 0 : baths,
+            minYear: vehicle ? Number(minYear) || null : null, maxMileageKm: vehicle ? toAmount(maxKm) : null,
+            amenityIds: amenityOptions.filter((a) => amen.includes(a.name)).map((a) => a.id),
             notes,
           }),
         c ? "Cliente actualizado" : "Cliente creado",
@@ -73,11 +90,17 @@ export function ClientModal({ client: c }: { client?: Client }) {
         </div>
         <div className="divider-top" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <span style={{ fontSize: 14, fontWeight: 500 }}>Qué busca</span>
+          <div className="chip-group"><span className="muted-12">Categoría</span>
+            <div className="chip-row">
+              {CATEGORIES.map((k) => <Chip key={k} size="sm" label={CATEGORY_LABEL[k]} on={category === k} onClick={() => pickCategory(k)} />)}
+              <Chip size="sm" label="Cualquiera" on={category === null} onClick={() => pickCategory(null)} />
+            </div>
+          </div>
           <div className="chip-group"><span className="muted-12">Operación</span>
-            <div className="chip-row">{(["Venta", "Alquiler", "Vacacional", "Preventa", "Todas"] as Op[]).map((k) => <Chip key={k} size="sm" label={k === "Todas" ? "Cualquiera" : OP_LABEL[k]} on={op === k} onClick={() => setOp(k)} />)}</div>
+            <div className="chip-row">{opOptions.map((k) => <Chip key={k} size="sm" label={k === "Todas" ? "Cualquiera" : OP_LABEL[k]} on={op === k} onClick={() => setOp(k)} />)}</div>
           </div>
           <div className="chip-group"><span className="muted-12">Tipo</span>
-            <div className="chip-row">{TYPES.map((t) => <Chip key={t} size="sm" label={t} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}</div>
+            <div className="chip-row">{typeOptions.map((t) => <Chip key={t} size="sm" label={t} on={types.includes(t)} onClick={() => setTypes(toggle(types, t))} />)}</div>
           </div>
           <div className="chip-group"><span className="muted-12">Ubicaciones (ciudad o cantón)</span>
             <PlacePicker value={cantons} onChange={setCantons} suggestions={places.cantons} />
@@ -85,11 +108,20 @@ export function ClientModal({ client: c }: { client?: Client }) {
           <div className="form-grid form-grid-120">
             <div className="field"><label htmlFor="cm-min">Presupuesto mín. (₡)</label><input id="cm-min" className="input h40" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value)} onBlur={fmt(min, setMin)} placeholder="0" /></div>
             <div className="field"><label htmlFor="cm-max">Presupuesto máx. (₡)</label><input id="cm-max" className="input h40" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value)} onBlur={fmt(max, setMax)} placeholder="Sin tope" /></div>
+            {vehicle ? (
+              <>
+                <div className="field"><label htmlFor="cm-year">Año mínimo</label><input id="cm-year" className="input h40" inputMode="numeric" maxLength={4} value={minYear} onChange={(e) => setMinYear(e.target.value.replace(/\D/g, ""))} placeholder="Cualquiera" /></div>
+                <div className="field"><label htmlFor="cm-km">Kilometraje máx.</label><input id="cm-km" className="input h40" inputMode="numeric" value={maxKm} onChange={(e) => setMaxKm(e.target.value)} onBlur={fmt(maxKm, setMaxKm)} placeholder="Sin tope" /></div>
+              </>
+            ) : (
+              <>
             <div className="field"><label htmlFor="cm-beds">Habitaciones</label><select id="cm-beds" className="input h40" value={beds} onChange={(e) => setBeds(Number(e.target.value))}>{[0, 1, 2, 3, 4].map((n) => <option key={n} value={n}>{n ? n + "+" : "Cualquiera"}</option>)}</select></div>
             <div className="field"><label htmlFor="cm-baths">Baños</label><select id="cm-baths" className="input h40" value={baths} onChange={(e) => setBaths(Number(e.target.value))}>{[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n ? n + "+" : "Cualquiera"}</option>)}</select></div>
+              </>
+            )}
           </div>
           <div className="chip-group"><span className="muted-12">Imprescindibles</span>
-            <div className="chip-row">{amenities.map((a) => <Chip key={a.id} size="sm" label={a.name} on={amen.includes(a.name)} onClick={() => setAmen(toggle(amen, a.name))} />)}</div>
+            <div className="chip-row">{amenityOptions.map((a) => <Chip key={a.id} size="sm" label={a.name} on={amen.includes(a.name)} onClick={() => setAmen(toggle(amen, a.name))} />)}</div>
           </div>
           <div className="field"><label htmlFor="cm-notes">Comentarios del cliente</label><textarea id="cm-notes" className="input" value={notes} maxLength={2000} onChange={(e) => setNotes(e.target.value)} style={{ minHeight: 70 }} /></div>
         </div>

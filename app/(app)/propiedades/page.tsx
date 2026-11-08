@@ -7,8 +7,8 @@ import { deleteProperty, duplicateProperty } from "@/app/actions/properties";
 import { usePanel } from "@/components/panel-provider";
 import { CountTab, PageHead, SearchInput, StatusTag } from "@/components/ui";
 import { ago } from "@/lib/dates";
-import { crc, isClosed, OP_LABEL, placeLine, pricePeriod, PROPERTY_STATUS_STYLE } from "@/lib/format";
-import type { Operation, Property, PropertyStatus } from "@/lib/types";
+import { CATEGORIES, CATEGORY_LABEL, crc, isClosed, itemNoun, OP_LABEL, placeLine, pricePeriod, PROPERTY_STATUS_STYLE, vehicleName } from "@/lib/format";
+import type { Category, Operation, Property, PropertyStatus } from "@/lib/types";
 
 type Tab = "Todas" | "Publicada" | "Borrador" | "Pausada" | "Cerrada";
 const TABS: [Tab, string][] = [["Todas", "Todas"], ["Publicada", "Publicadas"], ["Borrador", "Borradores"], ["Pausada", "Pausadas"], ["Cerrada", "Cerradas"]];
@@ -23,9 +23,16 @@ function PropertiesView() {
   const [status, setStatus] = useState<Tab>(TABS.some(([k]) => k === initial) ? (initial as Tab) : "Todas");
   const [q, setQ] = useState("");
   const [op, setOp] = useState<Operation | "Todas">("Todas");
+  const [cat, setCat] = useState<Category | "Todas">("Todas");
   const [agent, setAgent] = useState("Todos");
   const nq = norm(q.trim());
-  const filtered = properties.filter((p) => (op === "Todas" || p.operation === op) && (agent === "Todos" || p.agentId === agent) && (!nq || norm(`${p.title} ${p.zone} ${p.canton} ${p.province} ${p.country} ${p.code}`).includes(nq)));
+  const filtered = properties.filter(
+    (p) =>
+      (cat === "Todas" || p.category === cat) &&
+      (op === "Todas" || p.operation === op) &&
+      (agent === "Todos" || p.agentId === agent) &&
+      (!nq || norm(`${p.title} ${p.zone} ${p.canton} ${p.province} ${p.country} ${p.code} ${vehicleName(p)}`).includes(nq)),
+  );
   const count = (k: Tab) => filtered.filter((p) => inTab(p.status, k)).length;
   const list = filtered.filter((p) => inTab(p.status, status));
   const duplicate = async (p: Property) => {
@@ -37,10 +44,22 @@ function PropertiesView() {
 
   return (
     <div className="stack-18">
-      <PageHead title="Propiedades" sub={isAdmin ? "Inventario completo del equipo." : "Propiedades a tu cargo."} action={<Link href="/propiedades/nueva" className="btn btn-primary h40"><i className="ph ph-plus" style={{ fontSize: 16 }} />Nueva propiedad</Link>} />
+      <PageHead
+        title="Inventario"
+        sub={isAdmin ? "Inmuebles y vehículos de todo el equipo." : "Inmuebles y vehículos a tu cargo."}
+        action={
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link href="/propiedades/nueva?categoria=vehiculo" className="btn btn-secondary h40"><i className="ph ph-car-profile" style={{ fontSize: 16 }} />Nuevo vehículo</Link>
+            <Link href="/propiedades/nueva" className="btn btn-primary h40"><i className="ph ph-plus" style={{ fontSize: 16 }} />Nueva propiedad</Link>
+          </div>
+        }
+      />
       <div className="filters">
-        <SearchInput value={q} onChange={setQ} placeholder="Buscar por título, zona o código" />
+        <SearchInput value={q} onChange={setQ} placeholder="Buscar por título, marca, zona o código" />
         <div className="tabs-scroll">{TABS.map(([k, l]) => <CountTab key={k} label={l} count={count(k)} on={status === k} onClick={() => setStatus(k)} />)}</div>
+        <select className="input select-sm" value={cat} onChange={(e) => setCat(e.target.value as Category | "Todas")} aria-label="Categoría">
+          <option value="Todas">Inmuebles y vehículos</option>{CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
+        </select>
         <select className="input select-sm" value={op} onChange={(e) => setOp(e.target.value as Operation | "Todas")} aria-label="Operación">
           <option value="Todas">Todas las operaciones</option>{Object.entries(OP_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
@@ -48,7 +67,7 @@ function PropertiesView() {
       </div>
       <div className="table">
         <div className="table-head">
-          <span style={{ flex: "1 1 280px" }}>Propiedad</span><span className="w130">Operación</span><span className="w140">Precio</span><span className="w100">Estado</span>
+          <span style={{ flex: "1 1 280px" }}>Anuncio</span><span className="w130">Operación</span><span className="w140">Precio</span><span className="w100">Estado</span>
           {isAdmin && <span className="w130">Asesor</span>}<span className="w90">Actualizada</span><span className="w188" />
         </div>
         {list.map((p) => {
@@ -72,14 +91,14 @@ function PropertiesView() {
                 <button className="btn btn-secondary btn-icon b34" onClick={() => open({ type: "share", property: p })} disabled={p.status !== "Publicada"} aria-label="Compartir" title={p.status === "Publicada" ? "Compartir enlace" : "Solo las publicadas tienen enlace público"}><i className="ph ph-share-network" style={{ fontSize: 16 }} /></button>
                 <button className="btn btn-secondary btn-icon b34" onClick={() => duplicate(p)} aria-label="Duplicar" title="Duplicar"><i className="ph ph-copy" style={{ fontSize: 16 }} /></button>
                 <button className="btn btn-secondary btn-icon b34 is-danger" aria-label="Eliminar" title="Eliminar"
-                  onClick={() => open({ type: "confirm", title: "Eliminar propiedad", body: `Se eliminará “${p.title}” (${p.code}) del sitio y sus visitas quedarán sin propiedad. Esta acción no se puede deshacer.`, ok: "Eliminar", onOk: () => run(() => deleteProperty(p.id), "Propiedad eliminada") })}>
+                  onClick={() => open({ type: "confirm", title: `Eliminar ${itemNoun(p.category)}`, body: `Se eliminará “${p.title}” (${p.code}) del sitio y sus visitas quedarán sin anuncio. Esta acción no se puede deshacer.`, ok: "Eliminar", onOk: () => run(() => deleteProperty(p.id), "Anuncio eliminado") })}>
                   <i className="ph ph-trash" style={{ fontSize: 16 }} />
                 </button>
               </div>
             </div>
           );
         })}
-        {!list.length && <div className="table-empty"><span style={{ fontSize: 16, fontWeight: 500 }}>Sin resultados</span><span className="muted-13">Ajusta los filtros o crea una propiedad nueva.</span></div>}
+        {!list.length && <div className="table-empty"><span style={{ fontSize: 16, fontWeight: 500 }}>Sin resultados</span><span className="muted-13">Ajusta los filtros o crea un anuncio nuevo.</span></div>}
       </div>
     </div>
   );

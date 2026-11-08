@@ -15,11 +15,12 @@ const MAX_ROWS = 2000;
 const PROPERTY_COLUMNS =
   "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, maintenance_fee, " +
   "bedrooms, bathrooms, area_m2, parking_spaces, guests, floor, year_built, delivery, agent_id, updated_at, " +
+  "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, " +
   "property_images(url, position), property_amenities(amenities(name))";
 
 const CLIENT_COLUMNS =
   "id, name, email, phone, assigned_agent_id, status, source, auth_user_id, created_at, " +
-  "client_preferences(operation, property_types, cantons, budget_min, budget_max, min_bedrooms, min_bathrooms, notes), " +
+  "client_preferences(category, operation, property_types, cantons, budget_min, budget_max, min_bedrooms, min_bathrooms, min_year, max_mileage_km, notes), " +
   "client_required_amenities(amenities(name)), client_internal_notes(id, agent_id, body, created_at)";
 
 const opt = <T,>(v: T | null | undefined) => (v == null ? undefined : v);
@@ -39,6 +40,7 @@ const toProperty = (p: any): Property => ({
   description: p.description,
   operation: p.operation,
   type: p.type,
+  category: p.category ?? "Inmueble",
   status: p.status,
   featured: p.featured,
   tag: opt(p.tag),
@@ -59,6 +61,15 @@ const toProperty = (p: any): Property => ({
   floor: opt(p.floor),
   yearBuilt: opt(p.year_built),
   delivery: opt(p.delivery),
+  brand: opt(p.brand),
+  model: opt(p.model),
+  mileageKm: opt(p.mileage_km),
+  transmission: opt(p.transmission),
+  fuel: opt(p.fuel),
+  drivetrain: opt(p.drivetrain),
+  engineCc: opt(p.engine_cc),
+  color: opt(p.color),
+  doors: opt(p.doors),
   agentId: p.agent_id,
   amenities: names(p.property_amenities),
   images: [...(p.property_images ?? [])].sort((a: any, b: any) => a.position - b.position).map((i: any) => i.url),
@@ -78,6 +89,7 @@ const toClient = (c: any): Client => {
     hasAccount: !!c.auth_user_id,
     createdAt: c.created_at,
     preferences: {
+      category: f?.category ?? null,
       operation: f?.operation ?? "Todas",
       propertyTypes: f?.property_types ?? [],
       cantons: f?.cantons ?? [],
@@ -85,6 +97,8 @@ const toClient = (c: any): Client => {
       budgetMax: opt(f?.budget_max),
       minBedrooms: f?.min_bedrooms ?? 0,
       minBathrooms: Number(f?.min_bathrooms ?? 0),
+      minYear: opt(f?.min_year),
+      maxMileageKm: opt(f?.max_mileage_km),
       requiredAmenities: names(c.client_required_amenities),
       notes: opt(f?.notes),
     },
@@ -101,7 +115,7 @@ export async function getPanelData(supabase: ServerClient, me: TeamUser) {
   const [teamRes, propsRes, amenRes, visitsRes, clientsRes, matchesRes, zonesRes] = await Promise.all([
     supabase.from("agents").select(AGENT_COLUMNS).order("name"),
     supabase.from("properties").select(PROPERTY_COLUMNS).order("updated_at", { ascending: false }).limit(MAX_ROWS),
-    supabase.from("amenities").select("id, name").order("name"),
+    supabase.from("amenities").select("id, name, category").order("name"),
     supabase.from("visits").select("id, property_id, client_id, client_name, client_phone, agent_id, date, time, mode, status, source, notes")
       .gte("date", isoDaysFromToday(-VISIT_HISTORY_DAYS)).order("date").order("time").limit(MAX_ROWS),
     supabase.from("clients").select(CLIENT_COLUMNS).order("created_at", { ascending: false }).limit(MAX_ROWS),

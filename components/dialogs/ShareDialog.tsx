@@ -6,7 +6,7 @@ import type { Property } from "@/lib/types";
 import { usePanel } from "../panel-provider";
 
 /** Enlace público de la propiedad (sitio de clientes). */
-const siteUrl = (p: Property) => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") + "/propiedades/" + p.code;
+const siteUrl = (p: Property) => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") + "/catalogo/" + p.code;
 
 export function ShareDialog({ property: p }: { property: Property }) {
   const { close } = usePanel();

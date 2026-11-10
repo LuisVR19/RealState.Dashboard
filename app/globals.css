@@ -180,7 +180,38 @@ img { max-width: none; }
 .photo-actions > button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .92); color: var(--color-text); cursor: pointer; display: grid; place-items: center; font-size: 13px; }
 .photo-add { aspect-ratio: 4 / 3; border-radius: var(--radius-md); border: 1.5px dashed var(--color-neutral-700); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--color-neutral-400); font-size: 13px; cursor: pointer; text-align: center; padding: 8px; }
 .photo-add:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.editor-map { height: 280px; border-radius: var(--radius-md); overflow: hidden; background: var(--color-neutral-900); position: relative; z-index: 0; }
+.editor-map { height: 340px; border-radius: var(--radius-md); overflow: hidden; background: var(--color-neutral-900); position: relative; z-index: 0; }
+@media (max-width: 759px) { .editor-map { height: 280px; } }
+
+/* — ubicación del editor (LocationSection) — */
+.loc-status { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+.loc-status.is-ok { background: var(--color-accent-900); color: var(--color-accent-200); }
+.loc-status.is-warn { background: #f6efe1; color: #7a5a12; }
+.loc-search { position: relative; }
+.loc-search-row { display: flex; gap: 8px; }
+.loc-search-box { position: relative; flex: 1; min-width: 0; }
+.loc-search-box > .ph-magnifying-glass { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--color-neutral-400); pointer-events: none; }
+.loc-search-box > .input { width: 100%; padding-left: 36px; padding-right: 34px; }
+.loc-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-neutral-400); cursor: pointer; }
+.loc-clear:hover { background: var(--color-neutral-900); color: var(--color-text); }
+.loc-results { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-lg); max-height: 320px; overflow-y: auto; }
+.loc-results li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+.loc-results li > .ph { flex: none; font-size: 18px; color: var(--color-accent); }
+.loc-results li.is-active { background: var(--color-neutral-900); }
+.loc-results li.loc-empty { cursor: default; font-size: 13px; color: var(--color-neutral-400); }
+.loc-result-text { display: flex; flex-direction: column; min-width: 0; font-size: 14px; }
+.loc-map { position: relative; border-radius: var(--radius-md); }
+.loc-map.is-unset { box-shadow: 0 0 0 2px #e8d9b5; }
+.loc-coords { position: absolute; z-index: 500; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 2px; padding: 3px 4px 3px 10px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-surface) 92%, transparent); box-shadow: var(--shadow-sm); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-text); }
+.loc-coords > button, .loc-coords > a { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-neutral-300); font-size: 14px; cursor: pointer; text-decoration: none; }
+.loc-coords > button:hover, .loc-coords > a:hover { background: var(--color-neutral-900); color: var(--color-text); }
+.loc-hint { position: absolute; z-index: 500; left: 50%; top: 12px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: var(--color-text); color: #fff; font-size: 12px; white-space: nowrap; box-shadow: var(--shadow-md); pointer-events: none; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+.loc-suggest { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-accent-900); flex-wrap: wrap; }
+.loc-suggest b { font-weight: 500; }
+.loc-spin { animation: loc-spin 1s linear infinite; }
+@keyframes loc-spin { to { transform: rotate(360deg); } }
+@media (max-width: 559px) { .loc-hide-sm { display: none; } }
+@media (prefers-reduced-motion: reduce) { .loc-spin { animation-duration: 3s; } }
 /* Mismo mapa de calles a color que el sitio público, con la misma saturación. */
 .editor-map .leaflet-tile-pane { filter: saturate(.7) brightness(1.04) contrast(.95); }
 .editor-pin { position: absolute; left: -15px; top: -30px; font-size: 30px; color: var(--color-accent); line-height: 1; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .3)); }

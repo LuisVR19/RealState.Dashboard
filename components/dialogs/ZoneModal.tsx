@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { saveZone } from "@/app/actions/zones";
 import type { Canton, FeaturedZone } from "@/lib/types";
+import { canonical } from "@/lib/geo";
 import { uploadImage } from "@/lib/upload";
 import { DialogShell } from "../ui";
 import { usePanel } from "../panel-provider";
@@ -26,7 +27,7 @@ export function ZoneModal({ zone: z }: { zone?: FeaturedZone }) {
     });
   const save = () =>
     startBusy(async () => {
-      const res = await run(() => saveZone(z?.id ?? null, { label, name, imageUrl: url }), z ? "Zona actualizada" : "Zona creada");
+      const res = await run(() => saveZone(z?.id ?? null, { label, name: canonical(name, places.cantons), imageUrl: url }), z ? "Zona actualizada" : "Zona creada");
       if (res.ok) close();
     });
 
@@ -36,7 +37,8 @@ export function ZoneModal({ zone: z }: { zone?: FeaturedZone }) {
       <div className="form-grid">
         <div className="field"><label htmlFor="zm-label">Nombre visible *</label><input id="zm-label" className="input h40" value={label} maxLength={60} onChange={(e) => setLabel(e.target.value)} placeholder="Cachí y Ujarrás" /></div>
         <div className="field"><label htmlFor="zm-name">Ciudad o cantón que filtra *</label>
-          <input id="zm-name" className="input h40" list="zm-places" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Paraíso, Miami, Ciudad de Panamá…" />
+          <input id="zm-name" className="input h40" list="zm-places" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} onBlur={() => setName(canonical(name, places.cantons))} placeholder="Paraíso, Miami, Ciudad de Panamá…" />
+          <span className="muted-12">Debe escribirse igual que en los anuncios (se ajusta solo a la forma conocida: “paraiso” → “Paraíso”).</span>
           <datalist id="zm-places">{places.cantons.map((c) => <option key={c} value={c} />)}</datalist>
         </div>
         <div className="field" style={{ gridColumn: "1 / -1" }}><label htmlFor="zm-url">Imagen *</label>

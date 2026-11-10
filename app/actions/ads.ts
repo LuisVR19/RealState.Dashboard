@@ -89,9 +89,10 @@ function adRow(i: AdInput) {
   const endsOn = optDate(i.endsOn);
   if (startsOn && endsOn && endsOn < startsOn) throw new UserError("La fecha de fin no puede ser anterior a la de inicio.");
   const icon = typeof i.icon === "string" && ICONS.includes(i.icon) ? i.icon : "ph-megaphone";
+  const placement = v.oneOf(i.placement, AD_PLACEMENTS, "Espacio");
   return {
     advertiser_id: v.uuid(i.advertiserId, "La marca"),
-    placement: v.oneOf(i.placement, AD_PLACEMENTS, "Espacio"),
+    placement,
     status: v.oneOf(i.status, AD_STATUSES, "Estado"),
     headline: v.text(i.headline, "El titular", 60, true),
     body: v.text(i.body, "El texto", 120),
@@ -102,7 +103,8 @@ function adRow(i: AdInput) {
     starts_on: startsOn,
     ends_on: endsOn,
     weight: v.num(i.weight, "La prioridad", 0, 100) ?? 50,
-    cantons: [...new Set(v.list(i.cantons, 30, (c) => v.place(c, "La ubicación", 80, true)))],
+    // La portada no tiene ubicación (el sitio pide los banners sin cantón): con ubicaciones nunca saldría.
+    cantons: placement === "home_banner" ? [] : [...new Set(v.list(i.cantons, 30, (c) => v.place(c, "La ubicación", 80, true)))],
   };
 }
 

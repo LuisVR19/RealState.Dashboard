@@ -58,13 +58,14 @@ export function changed<T>(res: { data: T[] | null; error: { code?: string; mess
  * Ejecuta una acción del panel. Exige un asesor activo (la RLS es la última palabra) y, si todo sale
  * bien, refresca la pantalla del usuario para que vea los datos nuevos.
  */
-export async function runAction<T>(fn: (ctx: Ctx) => Promise<T>, opts: { adminOnly?: boolean } = {}): Promise<ActionResult<T>> {
+export async function runAction<T>(fn: (ctx: Ctx) => Promise<T>, opts: { adminOnly?: boolean; refresh?: boolean } = {}): Promise<ActionResult<T>> {
   try {
     const { supabase, me } = await getSession();
     if (!me) return { ok: false, error: "Tu sesión venció. Vuelve a iniciar sesión." };
     if (opts.adminOnly && me.role !== "Admin") return { ok: false, error: "Solo un administrador puede hacer esto." };
     const data = await fn({ supabase, me, isAdmin: me.role === "Admin" });
-    refresh();
+    // Las consultas de solo lectura (p. ej. geocodificar) no cambian datos: no hace falta re-renderizar.
+    if (opts.refresh !== false) refresh();
     return { ok: true, data };
   } catch (e) {
     if (e instanceof UserError) return { ok: false, error: e.message };

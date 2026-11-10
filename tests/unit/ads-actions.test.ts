@@ -88,6 +88,13 @@ describe("publicidad: anuncios", () => {
     expect(lastWrite()?.payload).toMatchObject({ advertiser_id: BRAND_ID, placement: "home_banner", starts_on: null, ends_on: null, weight: 50, image_url: null, icon: "ph-bank" });
   });
 
+  it("el banner de portada no se segmenta por ubicación (la portada no tiene cantón: nunca saldría)", async () => {
+    await saveAd(null, { ...ad, cantons: ["Paraíso", "Cartago"] as never[] });
+    expect(lastWrite()?.payload).toMatchObject({ placement: "home_banner", cantons: [] });
+    await saveAd(null, { ...ad, placement: "detail_services", cantons: ["Paraíso", "Paraíso"] as never[] });
+    expect(lastWrite()?.payload).toMatchObject({ placement: "detail_services", cantons: ["Paraíso"] });
+  });
+
   it("acepta un enlace interno del sitio", async () => {
     expect((await saveAd(null, { ...ad, href: "/propiedades?op=Venta" })).ok).toBe(true);
   });
@@ -106,8 +113,9 @@ describe("publicidad: anuncios", () => {
     ["botón vacío", { cta: " " }],
     ["espacio inventado", { placement: "popup" }],
     ["estado inventado", { status: "Publicada" }],
-    ["ubicación vacía", { cantons: [" "] }],
-    ["ubicación con HTML", { cantons: ["<img src=x>"] }],
+    // Las ubicaciones solo aplican a espacios segmentables (la portada las ignora).
+    ["ubicación vacía", { placement: "detail_services", cantons: [" "] }],
+    ["ubicación con HTML", { placement: "search_card", cantons: ["<img src=x>"] }],
     ["fin antes del inicio", { startsOn: "2026-12-10", endsOn: "2026-12-01" }],
     ["fecha inválida", { startsOn: "mañana" }],
     ["prioridad fuera de rango", { weight: 150 }],

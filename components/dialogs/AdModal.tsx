@@ -55,7 +55,7 @@ export function AdModal({ ad, advertisers, defaultAdvertiserId, onClose }: { ad?
   const save = () =>
     startBusy(async () => {
       const res = await run(
-        () => saveAd(ad?.id ?? null, { advertiserId, placement, status, headline, body, cta, href, imageUrl, icon, startsOn, endsOn, weight: Number(weight), cantons }),
+        () => saveAd(ad?.id ?? null, { advertiserId, placement, status, headline, body, cta, href, imageUrl, icon, startsOn, endsOn, weight: Number(weight), cantons: placement === "home_banner" ? [] : cantons }),
         ad ? "Anuncio actualizado" : "Anuncio creado",
       );
       if (res.ok) onClose();
@@ -139,10 +139,17 @@ export function AdModal({ ad, advertisers, defaultAdvertiserId, onClose }: { ad?
           </div>
           <span className="muted-12" style={{ marginTop: -8 }}>Sin fechas sale desde ya y sin fin. Con varios anuncios en el mismo espacio, sale primero el de mayor prioridad.</span>
 
-          <div className="field"><span className="field-label">Ubicaciones (ciudad o cantón)</span>
-            <PlacePicker value={cantons} onChange={setCantons} suggestions={places.cantons} />
-            <span className="muted-12">{cantons.length ? "Solo en fichas de esas ubicaciones y en búsquedas filtradas por una de ellas." : "Sin ubicaciones: sale en todo el sitio."}</span>
-          </div>
+          {placement === "home_banner" ? (
+            // La portada no tiene ubicación: un banner con ubicaciones nunca saldría (get_active_ads sin cantón).
+            <div className="field"><span className="field-label">Ubicaciones</span>
+              <span className="muted-12"><i className="ph ph-globe-hemisphere-west" /> El banner de portada lo ven todos los visitantes: no se segmenta por ubicación.</span>
+            </div>
+          ) : (
+            <div className="field"><span className="field-label">Ubicaciones (ciudad o cantón)</span>
+              <PlacePicker value={cantons} onChange={setCantons} suggestions={places.cantons} />
+              <span className="muted-12">{cantons.length ? (placement === "search_card" ? "Solo en búsquedas filtradas por una de esas ubicaciones." : "Solo en fichas de propiedades de esas ubicaciones.") : "Sin ubicaciones: sale en todo el sitio."}</span>
+            </div>
+          )}
         </div>
 
         <aside className="adm-preview">

@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type DragEvent } from "react";
@@ -8,17 +7,17 @@ import { saveProperty, type PropertyInput } from "@/app/actions/properties";
 import { ago, dayParts } from "@/lib/dates";
 import { amenityIcon, CATEGORIES, CATEGORY_ICON, categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, itemNoun, OP_LABEL, operationsOf, TRANSMISSIONS, typesOf, VISIT_STATUS_STYLE } from "@/lib/format";
 import type { Category, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, Transmission } from "@/lib/types";
+import { DEFAULT_POINT } from "@/lib/geo";
 import { imageProblem, uploadImage } from "@/lib/upload";
 import { Chip, toggle } from "./Chip";
+import { LocationSection } from "./LocationSection";
 import { usePanel } from "./panel-provider";
 import { PreviewCard } from "./PreviewCard";
 import { DateBadge, StatusTag, Toggle } from "./ui";
 
-const EditorMap = dynamic(() => import("./EditorMap").then((m) => m.EditorMap), { ssr: false, loading: () => <div className="editor-map" /> });
-
 const blank = (agentId: string): Property => ({
   id: "", code: "", title: "", description: "", operation: "Venta", type: "Casa", category: "Inmueble", status: "Borrador", featured: false, country: DEFAULT_COUNTRY, province: "Cartago", canton: "Paraíso", zone: "", address: "",
-  lat: 9.8385, lng: -83.866, price: 0, bedrooms: 0, bathrooms: 0, areaM2: 0, parkingSpaces: 0, agentId, amenities: [], images: [], updatedAt: "",
+  ...DEFAULT_POINT, price: 0, bedrooms: 0, bathrooms: 0, areaM2: 0, parkingSpaces: 0, agentId, amenities: [], images: [], updatedAt: "",
 });
 
 /** Archivos elegidos y aún no subidos, por su URL local (blob:) en `d.images`. */
@@ -31,13 +30,17 @@ type PendingFiles = Map<string, File>;
  * galería final en el orden elegido. Si la subida falla, los datos quedan guardados y se avisa.
  */
 export function PropertyEditor({ property, initialCategory = "Inmueble" }: { property?: Property; initialCategory?: Category }) {
-  const { me, team, isAdmin, visits, today, agentName, open, run, flash, amenities, places } = usePanel();
+  const { me, team, isAdmin, visits, today, agentName, open, run, flash, amenities } = usePanel();
   const router = useRouter();
   const [d, setD] = useState<Property>(() =>
     property ?? (initialCategory === "Vehículo" ? { ...blank(me.id), category: "Vehículo", type: "Carro" } : blank(me.id)),
   );
   const [files, setFiles] = useState<PendingFiles>(() => new Map());
   const [urlIn, setUrlIn] = useState("");
+  // ¿El asesor ya fijó el punto? En un anuncio nuevo el marcador arranca en el punto por defecto.
+  const [pinSet, setPinSet] = useState(() => !!property);
+  // Baños admite decimales ("2,5"): se edita como texto; si no, la coma se pierde al escribir.
+  const [bathText, setBathText] = useState(() => (d.bathrooms ? String(d.bathrooms).replace(".", ",") : ""));
   const [saving, startSaving] = useTransition();
   const set = (o: Partial<Property>) => setD((x) => ({ ...x, ...o }));
   const num = (k: keyof Property) => (e: ChangeEvent<HTMLInputElement>) => set({ [k]: Number(e.target.value.replace(/\D/g, "")) || 0 });
@@ -85,7 +88,25 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
   };
   const text = (k: "brand" | "model" | "color") => (e: ChangeEvent<HTMLInputElement>) => set({ [k]: e.target.value });
 
-  const save = () =>
+  /** Quita una foto; si era un archivo local aún no subido, libera su URL blob:. */
+  const removeImage = (i: number) => {
+    const src = d.images[i];
+    if (files.has(src)) {
+      URL.revokeObjectURL(src);
+      const next = new Map(files);
+      next.delete(src);
+      setFiles(next);
+    }
+    set({ images: d.images.filter((_, j) => j !== i) });
+  };
+
+  const save = () => {
+    // Publicado en el punto por defecto, el anuncio aparecería en el centro de Paraíso en el mapa del sitio.
+    if (!pinSet && d.status === "Publicada") {
+      flash("Marca la ubicación en el mapa antes de publicar (busca la dirección o haz clic en el mapa).", "error");
+      document.getElementById("pe-location")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     startSaving(async () => {
       const pendingFiles = d.images.filter((u) => files.has(u));
       const uploaded = d.images.filter((u) => !files.has(u));
@@ -109,6 +130,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
       flash(property ? "Cambios guardados" : `${noun[0].toUpperCase() + noun.slice(1)} ${code} creado${vehicle ? "" : "a"}`);
       router.push("/propiedades");
     });
+  };
 
   const priceLabel = d.operation === "Alquiler" ? "Precio mensual (₡)" : d.operation === "Vacacional" ? "Precio por noche (₡)" : d.operation === "Preventa" ? "Precio desde (₡)" : "Precio (₡)";
   const pVisits = property ? visits.filter((v) => v.propertyId === property.id && v.date >= today && v.status !== "Cancelada" && v.status !== "Realizada").sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 4) : [];
@@ -163,7 +185,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
             ) : (
             <div className="form-grid form-grid-130">
               <div className="field"><label>Habitaciones</label><input className="input h40" inputMode="numeric" value={numVal(d.bedrooms)} onChange={num("bedrooms")} placeholder="0" /></div>
-              <div className="field"><label>Baños</label><input className="input h40" inputMode="decimal" value={d.bathrooms ? String(d.bathrooms).replace(".", ",") : ""} onChange={(e) => set({ bathrooms: Number(e.target.value.replace(",", ".").replace(/[^\d.]/g, "")) || 0 })} placeholder="0" /></div>
+              <div className="field"><label>Baños</label><input className="input h40" inputMode="decimal" maxLength={4} value={bathText} onChange={(e) => { const s = e.target.value.replace(".", ",").replace(/[^\d,]/g, "").replace(/,(?=.*,)/g, ""); setBathText(s); set({ bathrooms: Number(s.replace(",", ".")) || 0 }); }} placeholder="0" /></div>
               <div className="field"><label>Área (m²)</label><input className="input h40" inputMode="numeric" value={numVal(d.areaM2)} onChange={num("areaM2")} placeholder="0" /></div>
               <div className="field"><label>Parqueos</label><input className="input h40" inputMode="numeric" value={numVal(d.parkingSpaces)} onChange={num("parkingSpaces")} placeholder="0" /></div>
               <div className="field"><label>Año</label><input className="input h40" inputMode="numeric" value={numVal(d.yearBuilt)} onChange={num("yearBuilt")} placeholder="2020" /></div>
@@ -187,7 +209,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
                   {i === 0 && <span className="tag photo-cover">Portada</span>}
                   <div className="photo-actions">
                     {i > 0 && <button onClick={() => { const a = d.images.slice(); a.unshift(a.splice(i, 1)[0]); set({ images: a }); }} title="Usar como portada"><i className="ph ph-star" /></button>}
-                    <button onClick={() => set({ images: d.images.filter((_, j) => j !== i) })} title="Quitar" aria-label="Quitar foto" style={{ color: "#8a2f24" }}><i className="ph ph-x" /></button>
+                    <button onClick={() => removeImage(i)} title="Quitar" aria-label="Quitar foto" style={{ color: "#8a2f24" }}><i className="ph ph-x" /></button>
                   </div>
                 </div>
               ))}
@@ -202,21 +224,12 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
             </div>
           </section>
 
-          <section className="card stack-14 pad-20">
-            <h2 className="h2-16">Ubicación</h2>
-            <div className="form-grid form-grid-170">
-              <div className="field"><label htmlFor="pe-country">País *</label><input id="pe-country" className="input h40" list="pe-countries" maxLength={60} value={d.country} onChange={(e) => set({ country: e.target.value })} placeholder="Costa Rica" /></div>
-              <div className="field"><label htmlFor="pe-province">Provincia o estado</label><input id="pe-province" className="input h40" list="pe-provinces" maxLength={80} value={d.province} onChange={(e) => set({ province: e.target.value })} placeholder="Cartago, Florida, Chiriquí…" /></div>
-              <div className="field"><label htmlFor="pe-canton">Ciudad o cantón *</label><input id="pe-canton" className="input h40" list="pe-cantons" maxLength={80} value={d.canton} onChange={(e) => set({ canton: e.target.value })} placeholder="Paraíso, Miami, Boquete…" /></div>
-              <datalist id="pe-countries">{places.countries.map((c) => <option key={c} value={c} />)}</datalist>
-              <datalist id="pe-provinces">{places.provinces.map((c) => <option key={c} value={c} />)}</datalist>
-              <datalist id="pe-cantons">{places.cantons.map((c) => <option key={c} value={c} />)}</datalist>
-              <div className="field"><label>Distrito o barrio *</label><input className="input h40" value={d.zone} onChange={(e) => set({ zone: e.target.value })} placeholder="Santa Lucía" /></div>
-              <div className="field"><label>Dirección de referencia</label><input className="input h40" value={d.address} onChange={(e) => set({ address: e.target.value })} placeholder="200 m sur de la iglesia" /></div>
-            </div>
-            <EditorMap lat={d.lat} lng={d.lng} onMove={(lat, lng) => set({ lat, lng })} />
-            <span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>Haz clic en el mapa o arrastra el marcador. Coordenadas: {d.lat.toFixed(4)}, {d.lng.toFixed(4)}. En el sitio público se muestra una zona aproximada.</span>
-          </section>
+          <div id="pe-location" style={{ scrollMarginTop: 80 }}>
+            <LocationSection
+              value={{ country: d.country, province: d.province, canton: d.canton, zone: d.zone, address: d.address, lat: d.lat, lng: d.lng }}
+              onChange={set} pinSet={pinSet} onPinSet={() => setPinSet(true)}
+            />
+          </div>
         </div>
 
         <div className="editor-side">
@@ -224,6 +237,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
             <h2 className="h2-16">Publicación</h2>
             <div className="field"><label>Estado</label><select className="input h40" value={d.status} onChange={(e) => set({ status: e.target.value as PropertyStatus })}><option value="Borrador">Borrador</option><option value="Publicada">Publicada</option><option value="Pausada">Pausada</option><option value="Vendida">Vendida</option><option value="Alquilada">Alquilada</option></select></div>
             {d.status === "Publicada" && !d.images.length && <span className="muted-12" style={{ color: "#7a5a12" }}>Sin fotos no aparece en el sitio. Agrega al menos una.</span>}
+            {d.status === "Publicada" && !pinSet && <a href="#pe-location" className="muted-12" style={{ color: "#7a5a12" }}>Falta marcar la ubicación en el mapa para publicar.</a>}
             {isAdmin && <div className="field"><label>Asesor responsable</label><select className="input h40" value={d.agentId} onChange={(e) => set({ agentId: e.target.value })}>{team.filter((u) => u.active || u.id === d.agentId).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>}
             <div className="row-between">
               <span style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 14 }}>Destacar en portada</span><span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>Aparece en la imagen principal</span></span>

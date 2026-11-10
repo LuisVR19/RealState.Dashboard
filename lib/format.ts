@@ -1,4 +1,5 @@
 import { Constants } from "./supabase/database.types";
+import { CR_PROVINCES } from "./geo";
 import type { Amenity, Canton, Category, ClientPreferences, ClientStatus, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, Transmission, VisitStatus } from "./types";
 
 export const OP_LABEL: Record<Operation, string> = { Venta: "Venta", Alquiler: "Alquiler", Vacacional: "Alquiler vacacional", Preventa: "Preventa" };
@@ -39,12 +40,41 @@ export const COUNTRY_SUGGESTIONS: readonly string[] = ["Costa Rica", "Panamá", 
 export const uniqueSorted = (xs: (string | null | undefined)[]) =>
   [...new Set(xs.map((x) => x?.trim()).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "es"));
 
+export type PlaceEntry = Pick<Property, "canton" | "province" | "country">;
+export interface Places {
+  cantons: string[];
+  provinces: string[];
+  countries: string[];
+  /** Combinaciones país / provincia / cantón del inventario (para sugerir según el país elegido). */
+  entries: PlaceEntry[];
+}
+
 /** Ubicaciones conocidas: las del inventario más las sugerencias base. */
-export const knownPlaces = (props: Pick<Property, "canton" | "province" | "country">[]) => ({
+export const knownPlaces = (props: PlaceEntry[]): Places => ({
   cantons: uniqueSorted([...props.map((p) => p.canton), ...CANTONS]),
-  provinces: uniqueSorted([...props.map((p) => p.province), "Cartago"]),
+  provinces: uniqueSorted([...props.map((p) => p.province), ...CR_PROVINCES]),
   countries: uniqueSorted([...props.map((p) => p.country), ...COUNTRY_SUGGESTIONS]),
+  entries: props.map(({ canton, province, country }) => ({ canton, province, country })),
 });
+
+const sameText = (a: string | null | undefined, b: string) => !!a && a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
+
+/**
+ * Sugerencias de provincia y cantón para un país (y una provincia, si se eligió): las del inventario en
+ * ese lugar, más las provincias y cantones base cuando es Costa Rica. Sin país, todas.
+ */
+export function placesFor(places: Places, country: string, province = ""): { provinces: string[]; cantons: string[] } {
+  if (!country.trim()) return { provinces: places.provinces, cantons: places.cantons };
+  const inCountry = places.entries.filter((e) => sameText(e.country, country));
+  const cr = sameText(DEFAULT_COUNTRY, country);
+  const inProvince = province.trim() ? inCountry.filter((e) => sameText(e.province, province)) : inCountry;
+  // Los cantones base son de Cartago: se sugieren sin provincia o con Cartago.
+  const baseCantons = cr && (!province.trim() || sameText("Cartago", province)) ? CANTONS : [];
+  return {
+    provinces: uniqueSorted([...inCountry.map((e) => e.province), ...(cr ? CR_PROVINCES : [])]),
+    cantons: uniqueSorted([...inProvince.map((e) => e.canton), ...baseCantons]),
+  };
+}
 
 /** "Zona, cantón" y el país si no es Costa Rica. */
 export const placeLine = (p: Pick<Property, "zone" | "canton" | "country">) =>

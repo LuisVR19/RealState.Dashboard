@@ -5,7 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ActionResult } from "@/lib/action";
 import type { PanelData } from "@/lib/data";
-import { knownPlaces } from "@/lib/format";
+import { knownPlaces, type Places } from "@/lib/format";
 import type { Client, FeaturedZone, Property, TeamUser, Visit } from "@/lib/types";
 import { ClientDrawer } from "./dialogs/ClientDrawer";
 import { ClientModal } from "./dialogs/ClientModal";
@@ -41,7 +41,7 @@ interface PanelContextValue extends PanelData {
   propertyById: (id: string | null | undefined) => Property | undefined;
   propertyTitle: (id: string | null | undefined) => string;
   /** Ubicaciones conocidas (inventario + sugerencias) para autocompletar y filtrar. */
-  places: { cantons: string[]; provinces: string[]; countries: string[] };
+  places: Places;
 }
 
 const PanelContext = createContext<PanelContextValue | null>(null);

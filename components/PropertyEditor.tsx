@@ -201,7 +201,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
           </section>
 
           <section className="card stack-14 pad-20">
-            <div className="row-between" style={{ flexWrap: "wrap" }}><h2 className="h2-16">Fotos *</h2><span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>La primera es la portada. JPG, PNG o WebP de hasta 5 MB, o una URL https.</span></div>
+            <div className="row-between" style={{ flexWrap: "wrap" }}><h2 className="h2-16">Fotos *</h2><span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>La primera es la portada. JPG, PNG o WebP de hasta 20 MB (se optimizan al subir), o una URL https.</span></div>
             <div className="photo-grid" onDragOver={(e: DragEvent) => e.preventDefault()} onDrop={(e: DragEvent) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
               {d.images.map((src, i) => (
                 <div key={src + i} className="photo" style={{ boxShadow: i === 0 ? "0 0 0 2px var(--color-accent)" : "none" }}>

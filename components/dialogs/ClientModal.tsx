@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { saveClient } from "@/app/actions/clients";
-import { CATEGORIES, CATEGORY_LABEL, CLIENT_STATUSES, dots, OP_LABEL, operationsOf, TYPES, typesOf } from "@/lib/format";
+import { CATEGORY_LABEL, CLIENT_STATUSES, dots, MATCH_CATEGORIES, matchTypesOf, OP_LABEL, operationsOf, typesOf } from "@/lib/format";
 import { PlacePicker } from "../PlacePicker";
 import type { Amenity, Canton, Category, Client, ClientStatus, Operation, PropertyType } from "@/lib/types";
 import { Chip, toggle } from "../Chip";
 import { DialogShell } from "../ui";
 import { usePanel } from "../panel-provider";
 
-type Op = Operation | "Todas";
+type Op = Exclude<Operation, "Servicio"> | "Todas";
 const toAmount = (s: string) => Number(s.replace(/\D/g, "")) || null;
 
 /** Crear o editar un cliente y lo que busca (rpc save_client: cliente + preferencias en una transacción). */
@@ -36,8 +36,8 @@ export function ClientModal({ client: c }: { client?: Client }) {
   const [saving, startSaving] = useTransition();
   const vehicle = category === "Vehículo";
   // Lo que se ofrece depende de la categoría (null = todo).
-  const typeOptions = category ? typesOf(category) : TYPES;
-  const opOptions: Op[] = [...(category ? operationsOf(category) : (["Venta", "Alquiler", "Vacacional", "Preventa"] as Operation[])), "Todas"];
+  const typeOptions = matchTypesOf(category);
+  const opOptions = [...operationsOf(category), "Todas"] as Op[];
   const amenityOptions = category ? amenities.filter((a) => a.category === category) : amenities;
   const pickCategory = (k: Category | null) => {
     setCategory(k);
@@ -92,7 +92,7 @@ export function ClientModal({ client: c }: { client?: Client }) {
           <span style={{ fontSize: 14, fontWeight: 500 }}>Qué busca</span>
           <div className="chip-group"><span className="muted-12">Categoría</span>
             <div className="chip-row">
-              {CATEGORIES.map((k) => <Chip key={k} size="sm" label={CATEGORY_LABEL[k]} on={category === k} onClick={() => pickCategory(k)} />)}
+              {MATCH_CATEGORIES.map((k) => <Chip key={k} size="sm" label={CATEGORY_LABEL[k]} on={category === k} onClick={() => pickCategory(k)} />)}
               <Chip size="sm" label="Cualquiera" on={category === null} onClick={() => pickCategory(null)} />
             </div>
           </div>

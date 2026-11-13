@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type DragEvent } from "react";
 import { saveProperty, type PropertyInput } from "@/app/actions/properties";
 import { ago, dayParts } from "@/lib/dates";
-import { amenityIcon, CATEGORIES, CATEGORY_ICON, categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, itemNoun, OP_LABEL, operationsOf, TRANSMISSIONS, typesOf, VISIT_STATUS_STYLE } from "@/lib/format";
-import type { Category, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, Transmission } from "@/lib/types";
+import { amenityIcon, CATEGORIES, CATEGORY_ICON, categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, itemNoun, OP_LABEL, operationsOf, SERVICE_RATES, statusesOf, TRANSMISSIONS, typesOf, VISIT_STATUS_STYLE } from "@/lib/format";
+import type { Category, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, ServiceRate, Transmission } from "@/lib/types";
 import { DEFAULT_POINT } from "@/lib/geo";
 import { imageProblem, uploadImage } from "@/lib/upload";
 import { Chip, toggle } from "./Chip";
@@ -33,7 +33,12 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
   const { me, team, isAdmin, visits, today, agentName, open, run, flash, amenities } = usePanel();
   const router = useRouter();
   const [d, setD] = useState<Property>(() =>
-    property ?? (initialCategory === "Vehículo" ? { ...blank(me.id), category: "Vehículo", type: "Carro" } : blank(me.id)),
+    property ??
+    (initialCategory === "Vehículo"
+      ? { ...blank(me.id), category: "Vehículo", type: "Carro" }
+      : initialCategory === "Servicio"
+      ? { ...blank(me.id), category: "Servicio", type: typesOf("Servicio")[0], operation: "Servicio", serviceRate: "Por proyecto" }
+      : blank(me.id)),
   );
   const [files, setFiles] = useState<PendingFiles>(() => new Map());
   const [urlIn, setUrlIn] = useState("");
@@ -72,19 +77,27 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
     bedrooms: x.bedrooms, bathrooms: x.bathrooms, areaM2: x.areaM2, parkingSpaces: x.parkingSpaces, guests: x.guests, floor: x.floor,
     yearBuilt: x.yearBuilt, delivery: x.delivery, agentId: x.agentId,
     brand: x.brand, model: x.model, mileageKm: x.mileageKm, transmission: x.transmission, fuel: x.fuel, drivetrain: x.drivetrain,
-    engineCc: x.engineCc, color: x.color, doors: x.doors,
+    engineCc: x.engineCc, color: x.color, doors: x.doors, serviceRate: x.serviceRate,
     // Solo las amenidades / el equipamiento de la categoría del anuncio.
     amenityIds: amenities.filter((a) => a.category === categoryOf(x.type) && x.amenities.includes(a.name)).map((a) => a.id),
   });
 
   const cat = categoryOf(d.type);
   const vehicle = cat === "Vehículo";
+  const service = cat === "Servicio";
   const noun = itemNoun(cat);
-  /** Cambiar de categoría: primer tipo de la nueva, operación válida y sin amenidades de la otra. */
+  /** Cambiar de categoría: primer tipo de la nueva, operación y estado válidos, y sin amenidades de la otra. */
   const setCategory = (c: Category) => {
     if (c === cat) return;
     const names = new Set(amenities.filter((a) => a.category === c).map((a) => a.name));
-    set({ category: c, type: typesOf(c)[0], operation: operationsOf(c).includes(d.operation) ? d.operation : "Venta", amenities: d.amenities.filter((a) => names.has(a)) });
+    set({
+      category: c,
+      type: typesOf(c)[0],
+      operation: operationsOf(c).includes(d.operation) ? d.operation : operationsOf(c)[0],
+      status: statusesOf(c).includes(d.status) ? d.status : "Borrador",
+      serviceRate: c === "Servicio" ? d.serviceRate ?? "Por proyecto" : undefined,
+      amenities: d.amenities.filter((a) => names.has(a)),
+    });
   };
   const text = (k: "brand" | "model" | "color") => (e: ChangeEvent<HTMLInputElement>) => set({ [k]: e.target.value });
 
@@ -127,12 +140,14 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
           return router.replace(`/propiedades/${code}`);
         }
       }
-      flash(property ? "Cambios guardados" : `${noun[0].toUpperCase() + noun.slice(1)} ${code} creado${vehicle ? "" : "a"}`);
+      flash(property ? "Cambios guardados" : `${noun[0].toUpperCase() + noun.slice(1)} ${code} creado${vehicle || service ? "" : "a"}`);
       router.push("/propiedades");
     });
   };
 
-  const priceLabel = d.operation === "Alquiler" ? "Precio mensual (₡)" : d.operation === "Vacacional" ? "Precio por noche (₡)" : d.operation === "Preventa" ? "Precio desde (₡)" : "Precio (₡)";
+  const priceLabel = service
+    ? d.serviceRate === "Por hora" ? "Precio por hora (₡)" : d.serviceRate === "Por proyecto" ? "Precio desde (₡)" : "Precio (₡)"
+    : d.operation === "Alquiler" ? "Precio mensual (₡)" : d.operation === "Vacacional" ? "Precio por noche (₡)" : d.operation === "Preventa" ? "Precio desde (₡)" : "Precio (₡)";
   const pVisits = property ? visits.filter((v) => v.propertyId === property.id && v.date >= today && v.status !== "Cancelada" && v.status !== "Realizada").sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 4) : [];
 
   return (
@@ -140,7 +155,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
       <div className="editor-bar">
         <Link href="/propiedades" className="btn btn-secondary btn-icon" aria-label="Volver"><i className="ph ph-arrow-left" style={{ fontSize: 16 }} /></Link>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <h1 style={{ fontSize: 22, margin: 0 }}>{property ? `Editar ${noun}` : vehicle ? "Nuevo vehículo" : "Nueva propiedad"}</h1>
+          <h1 style={{ fontSize: 22, margin: 0 }}>{property ? `Editar ${noun}` : vehicle ? "Nuevo vehículo" : service ? "Nuevo servicio" : "Nueva propiedad"}</h1>
           <span style={{ fontSize: 12, color: "var(--color-neutral-500)" }}>{property ? `${property.code} · actualizada ${ago(property.updatedAt).toLowerCase()}` : `Se guardará como ${d.status.toLowerCase()}`}</span>
         </div>
         {property && d.status === "Publicada" && <button className="btn btn-secondary h40" onClick={() => open({ type: "share", property: d })}><i className="ph ph-share-network" style={{ fontSize: 16 }} />Compartir</button>}
@@ -157,19 +172,25 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
                 {CATEGORIES.map((c) => <Chip key={c} size="md" label={c} icon={CATEGORY_ICON[c]} on={cat === c} onClick={() => setCategory(c)} />)}
               </div>
             </div>
-            <div className="field"><label>Título del anuncio *</label><input className="input h40" value={d.title} onChange={(e) => set({ title: e.target.value })} placeholder={vehicle ? "Ej. Toyota Hilux 2021 4x4, único dueño" : "Ej. Casa con jardín y vista al valle en Paraíso"} /></div>
+            <div className="field"><label>Título del anuncio *</label><input className="input h40" value={d.title} onChange={(e) => set({ title: e.target.value })} placeholder={vehicle ? "Ej. Toyota Hilux 2021 4x4, único dueño" : service ? "Ej. Diseño de páginas web para negocios" : "Ej. Casa con jardín y vista al valle en Paraíso"} /></div>
             <div className="form-grid form-grid-170">
-              <div className="field"><label>Operación</label><select className="input h40" value={d.operation} onChange={(e) => set({ operation: e.target.value as Operation })}>{operationsOf(cat).map((o) => <option key={o} value={o}>{OP_LABEL[o]}</option>)}</select></div>
-              <div className="field"><label>Tipo</label><select className="input h40" value={d.type} onChange={(e) => set({ type: e.target.value as PropertyType })}>{typesOf(cat).map((t) => <option key={t}>{t}</option>)}</select></div>
-              <div className="field"><label>{priceLabel} *</label><input className="input h40" inputMode="numeric" value={numVal(d.price)} onChange={num("price")} placeholder="0" /></div>
+              {service ? (
+                <div className="field"><label htmlFor="pe-rate">Forma de cobro</label><select id="pe-rate" className="input h40" value={d.serviceRate ?? "A convenir"} onChange={(e) => set({ serviceRate: e.target.value as ServiceRate })}>{SERVICE_RATES.map((r) => <option key={r}>{r}</option>)}</select></div>
+              ) : (
+                <div className="field"><label>Operación</label><select className="input h40" value={d.operation} onChange={(e) => set({ operation: e.target.value as Operation })}>{operationsOf(cat).map((o) => <option key={o} value={o}>{OP_LABEL[o]}</option>)}</select></div>
+              )}
+              <div className="field"><label>{service ? "Tipo de servicio" : "Tipo"}</label><select className="input h40" value={d.type} onChange={(e) => set({ type: e.target.value as PropertyType })}>{typesOf(cat).map((t) => <option key={t}>{t}</option>)}</select></div>
+              {service && d.serviceRate === "A convenir"
+                ? <div className="field"><label>Precio</label><input className="input h40" value="A convenir" disabled /></div>
+                : <div className="field"><label>{priceLabel} *</label><input className="input h40" inputMode="numeric" value={numVal(d.price)} onChange={num("price")} placeholder="0" /></div>}
               <div className="field"><label>Etiqueta (opcional)</label><input className="input h40" maxLength={30} value={d.tag ?? ""} onChange={(e) => set({ tag: e.target.value })} placeholder="Exclusiva, Nuevo…" /></div>
             </div>
-            <div className="field"><label>Descripción</label><textarea className="input" value={d.description} onChange={(e) => set({ description: e.target.value })} placeholder={vehicle ? "Estado, mantenimientos, extras y motivo de venta." : "Describe distribución, acabados y entorno."} style={{ minHeight: 120 }} /></div>
+            <div className="field"><label>Descripción</label><textarea className="input" value={d.description} onChange={(e) => set({ description: e.target.value })} placeholder={vehicle ? "Estado, mantenimientos, extras y motivo de venta." : service ? "Qué incluye, experiencia, horario, zona que cubre y forma de trabajo." : "Describe distribución, acabados y entorno."} style={{ minHeight: 120 }} /></div>
           </section>
 
           <section className="card stack-14 pad-20">
-            <h2 className="h2-16">Características</h2>
-            {vehicle ? (
+            <h2 className="h2-16">{service ? "Detalles del servicio" : "Características"}</h2>
+            {service ? null : vehicle ? (
               <div className="form-grid form-grid-130">
                 <div className="field"><label htmlFor="pe-brand">Marca</label><input id="pe-brand" className="input h40" maxLength={40} value={d.brand ?? ""} onChange={text("brand")} placeholder="Toyota" /></div>
                 <div className="field"><label htmlFor="pe-model">Modelo</label><input id="pe-model" className="input h40" maxLength={60} value={d.model ?? ""} onChange={text("model")} placeholder="Hilux SR 2.4" /></div>
@@ -195,7 +216,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
               {d.operation === "Preventa" && <div className="field"><label>Entrega estimada</label><input className="input h40" value={d.delivery ?? ""} onChange={(e) => set({ delivery: e.target.value })} placeholder="Junio 2027" /></div>}
             </div>
             )}
-            <div className="chip-group"><span className="muted-12">{vehicle ? "Equipamiento" : "Amenidades"}</span>
+            <div className="chip-group"><span className="muted-12">{vehicle ? "Equipamiento" : service ? "Marca lo que aplica" : "Amenidades"}</span>
               <div className="chip-row">{amenities.filter((a) => a.category === cat).map(({ id, name: a }) => <Chip key={id} size="md" label={a} icon={amenityIcon(a)} on={d.amenities.includes(a)} onClick={() => set({ amenities: toggle(d.amenities, a) })} />)}</div>
             </div>
           </section>
@@ -235,7 +256,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
         <div className="editor-side">
           <section className="card stack-14 pad-20">
             <h2 className="h2-16">Publicación</h2>
-            <div className="field"><label>Estado</label><select className="input h40" value={d.status} onChange={(e) => set({ status: e.target.value as PropertyStatus })}><option value="Borrador">Borrador</option><option value="Publicada">Publicada</option><option value="Pausada">Pausada</option><option value="Vendida">Vendida</option><option value="Alquilada">Alquilada</option></select></div>
+            <div className="field"><label>Estado</label><select className="input h40" value={d.status} onChange={(e) => set({ status: e.target.value as PropertyStatus })}>{statusesOf(cat).map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
             {d.status === "Publicada" && !d.images.length && <span className="muted-12" style={{ color: "#7a5a12" }}>Sin fotos no aparece en el sitio. Agrega al menos una.</span>}
             {d.status === "Publicada" && !pinSet && <a href="#pe-location" className="muted-12" style={{ color: "#7a5a12" }}>Falta marcar la ubicación en el mapa para publicar.</a>}
             {isAdmin && <div className="field"><label>Asesor responsable</label><select className="input h40" value={d.agentId} onChange={(e) => set({ agentId: e.target.value })}>{team.filter((u) => u.active || u.id === d.agentId).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>}
@@ -254,7 +275,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
                   <StatusTag style={VISIT_STATUS_STYLE[v.status]}>{v.status}</StatusTag>
                 </div>
               ))}
-              {!pVisits.length && <span className="muted-13">Sin visitas próximas para {vehicle ? "este vehículo" : "esta propiedad"}.</span>}
+              {!pVisits.length && <span className="muted-13">Sin visitas próximas para {vehicle ? "este vehículo" : service ? "este servicio" : "esta propiedad"}.</span>}
               <button className="btn btn-secondary h38" onClick={() => open({ type: "visit", prefill: { propertyId: property.id, agentId: d.agentId } })}><i className="ph ph-calendar-plus" style={{ fontSize: 16 }} />Agendar visita</button>
             </section>
           )}

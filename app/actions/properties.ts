@@ -1,7 +1,7 @@
 "use server";
 
 import { check, changed, revalidateSite, runAction, UserError, v } from "@/lib/action";
-import { categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, operationsOf, OPERATIONS, PROPERTY_STATUSES, TRANSMISSIONS, TYPES } from "@/lib/format";
+import { categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, operationsOf, OPERATIONS, PROPERTY_STATUSES, SERVICE_RATES, statusesOf, TRANSMISSIONS, TYPES } from "@/lib/format";
 import type { Json } from "@/lib/supabase/database.types";
 
 export interface PropertyInput {
@@ -39,6 +39,8 @@ export interface PropertyInput {
   engineCc?: number;
   color?: string;
   doors?: number;
+  // Servicio (la base lo ignora si el tipo no es de servicio)
+  serviceRate?: string;
   agentId: string;
   amenityIds: string[];
 }
@@ -51,19 +53,24 @@ const optOneOf = <T extends string>(x: unknown, list: readonly T[], label: strin
 function toRow(i: PropertyInput) {
   const title = v.text(i.title, "El título", 140, true);
   const zone = v.text(i.zone, "El distrito o barrio", 80, true);
-  const price = v.num(i.price, "El precio", 0, 1e13);
-  if (!price) throw new UserError("El precio es obligatorio.");
   const type = v.oneOf(i.type, TYPES, "Tipo");
   const category = categoryOf(type);
-  const operation = v.oneOf(i.operation, OPERATIONS, "Operación");
-  if (!operationsOf(category).includes(operation)) throw new UserError("Un vehículo solo se publica en venta o alquiler.");
   const vehicle = category === "Vehículo";
+  const service = category === "Servicio";
+  // Un servicio siempre es operación "Servicio" y lleva forma de cobro; "A convenir" no publica precio.
+  const operation = service ? "Servicio" : v.oneOf(i.operation, OPERATIONS, "Operación");
+  if (!operationsOf(category).includes(operation)) throw new UserError("Un vehículo solo se publica en venta o alquiler.");
+  const serviceRate = service ? v.oneOf(i.serviceRate || "A convenir", SERVICE_RATES, "Forma de cobro") : null;
+  const price = serviceRate === "A convenir" ? 0 : v.num(i.price, "El precio", 0, 1e13);
+  if (!price && serviceRate !== "A convenir") throw new UserError(service ? "Indica el precio o elige la forma de cobro «A convenir»." : "El precio es obligatorio.");
+  const status = v.oneOf(i.status, PROPERTY_STATUSES, "Estado");
+  if (!statusesOf(category).includes(status)) throw new UserError("Un servicio solo puede estar en borrador, publicado o pausado.");
   return {
     title,
     description: v.text(i.description, "La descripción", 5000),
     operation,
     type,
-    status: v.oneOf(i.status, PROPERTY_STATUSES, "Estado"),
+    status,
     featured: v.bool(i.featured),
     tag: v.text(i.tag, "La etiqueta", 30),
     country: v.place(i.country, "El país", 60) || DEFAULT_COUNTRY,
@@ -81,7 +88,7 @@ function toRow(i: PropertyInput) {
     parking_spaces: v.num(i.parkingSpaces, "Parqueos", 0, 1000) ?? 0,
     guests: zeroToNull(v.num(i.guests, "Huéspedes", 0, 1000)),
     floor: v.text(i.floor, "El piso", 20),
-    year_built: zeroToNull(v.num(i.yearBuilt, "El año", 0, 2100)),
+    year_built: service ? null : zeroToNull(v.num(i.yearBuilt, "El año", 0, 2100)),
     delivery: v.text(i.delivery, "La entrega", 40),
     brand: vehicle ? v.place(i.brand, "La marca", 40) || null : null,
     model: vehicle ? v.place(i.model, "El modelo", 60) || null : null,
@@ -92,6 +99,7 @@ function toRow(i: PropertyInput) {
     engine_cc: vehicle ? zeroToNull(v.num(i.engineCc, "La cilindrada", 0, 30_000)) : null,
     color: vehicle ? v.place(i.color, "El color", 30) || null : null,
     doors: vehicle ? zeroToNull(v.num(i.doors, "Las puertas", 0, 9)) : null,
+    service_rate: serviceRate,
     agent_id: v.uuid(i.agentId, "Asesor"),
   };
 }

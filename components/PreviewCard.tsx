@@ -1,4 +1,4 @@
-import { crc, initialsOf, OP_LABEL, placeLine, priceSuffix, specs } from "@/lib/format";
+import { initialsOf, noPrice, OP_LABEL, placeLine, priceMain, pricePrefix, priceSuffix, specs } from "@/lib/format";
 import type { Property } from "@/lib/types";
 
 /** Vista previa de la tarjeta tal como se ve en el sitio público (sin interacción). */
@@ -14,8 +14,8 @@ export function PreviewCard({ p, agentName }: { p: Property; agentName: string }
       </div>
       <div className="pcard-body">
         <div className="pcard-price">
-          {p.operation === "Preventa" && <span className="muted-12">Desde</span>}
-          <span className="pcard-price-main">{p.price ? crc(p.price) : "₡0"}</span>
+          {pricePrefix(p) && <span className="muted-12">{pricePrefix(p)}</span>}
+          <span className="pcard-price-main">{noPrice(p) || p.price ? priceMain(p) : "₡0"}</span>
           <span className="muted-12">{p.price ? priceSuffix(p) : ""}</span>
         </div>
         <div className="pcard-title">{p.title || "Título del anuncio"}</div>

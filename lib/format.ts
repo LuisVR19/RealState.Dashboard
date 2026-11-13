@@ -1,33 +1,50 @@
 import { Constants } from "./supabase/database.types";
 import { CR_PROVINCES } from "./geo";
-import type { Amenity, Canton, Category, ClientPreferences, ClientStatus, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, Transmission, VisitStatus } from "./types";
+import type { Amenity, Canton, Category, ClientPreferences, ClientStatus, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, ServiceRate, Transmission, VisitStatus } from "./types";
 
-export const OP_LABEL: Record<Operation, string> = { Venta: "Venta", Alquiler: "Alquiler", Vacacional: "Alquiler vacacional", Preventa: "Preventa" };
+export const OP_LABEL: Record<Operation, string> = { Venta: "Venta", Alquiler: "Alquiler", Vacacional: "Alquiler vacacional", Preventa: "Preventa", Servicio: "Servicio" };
 export const OPERATIONS = Constants.public.Enums.property_operation as readonly Operation[];
+/** Operaciones de inmuebles y vehículos (un servicio siempre es "Servicio"). */
+const LISTING_OPERATIONS: readonly Operation[] = OPERATIONS.filter((o) => o !== "Servicio");
 export const TYPES = Constants.public.Enums.property_type as readonly PropertyType[];
 export const PROPERTY_STATUSES = Constants.public.Enums.property_status as readonly PropertyStatus[];
 
 // -----------------------------------------------------------------------------
-// Categorías (inmueble / vehículo). Mismas reglas que public.type_category y el CHECK de la base.
+// Categorías (inmueble / vehículo / servicio). Mismas reglas que public.type_category y los CHECK de la base.
 // -----------------------------------------------------------------------------
 export const CATEGORIES = Constants.public.Enums.listing_category as readonly Category[];
-export const CATEGORY_LABEL: Record<Category, string> = { Inmueble: "Inmuebles", Vehículo: "Vehículos" };
-export const CATEGORY_ICON: Record<Category, string> = { Inmueble: "ph-house-line", Vehículo: "ph-car-profile" };
+/** Categorías con preferencias de cliente y matching. Los servicios no se sugieren a clientes. */
+export const MATCH_CATEGORIES: readonly Category[] = ["Inmueble", "Vehículo"];
+export const CATEGORY_LABEL: Record<Category, string> = { Inmueble: "Inmuebles", Vehículo: "Vehículos", Servicio: "Servicios" };
+export const CATEGORY_ICON: Record<Category, string> = { Inmueble: "ph-house-line", Vehículo: "ph-car-profile", Servicio: "ph-handshake" };
 const VEHICLE_TYPES: readonly PropertyType[] = ["Carro", "Moto", "Pickup", "Camión"];
-export const categoryOf = (t: PropertyType): Category => (VEHICLE_TYPES.includes(t) ? "Vehículo" : "Inmueble");
+const SERVICE_TYPES: readonly PropertyType[] = [
+  "Mantenimiento y reparaciones", "Construcción y remodelación", "Limpieza", "Mudanzas y fletes", "Jardinería", "Legal y notarial", "Contabilidad",
+  "Diseño web", "Desarrollo de software", "Marketing digital", "Diseño gráfico", "Fotografía y video", "Clases y tutorías", "Otro servicio",
+];
+export const categoryOf = (t: PropertyType): Category => (VEHICLE_TYPES.includes(t) ? "Vehículo" : SERVICE_TYPES.includes(t) ? "Servicio" : "Inmueble");
 export const isVehicle = (p: { type: PropertyType }) => categoryOf(p.type) === "Vehículo";
+export const isService = (p: { type: PropertyType }) => categoryOf(p.type) === "Servicio";
 export const typesOf = (c: Category) => TYPES.filter((t) => categoryOf(t) === c);
-/** Un vehículo solo se publica en venta o alquiler. */
-export const operationsOf = (c: Category): readonly Operation[] => (c === "Vehículo" ? ["Venta", "Alquiler"] : OPERATIONS);
+/** Tipos para preferencias de cliente: los de la categoría, o los de inmuebles y vehículos sin categoría. */
+export const matchTypesOf = (c: Category | null) => (c ? typesOf(c) : TYPES.filter((t) => categoryOf(t) !== "Servicio"));
+/** Un vehículo solo se publica en venta o alquiler; un servicio siempre es "Servicio". Sin categoría, las de inmuebles y vehículos. */
+export const operationsOf = (c: Category | null): readonly Operation[] =>
+  c === "Vehículo" ? ["Venta", "Alquiler"] : c === "Servicio" ? ["Servicio"] : LISTING_OPERATIONS;
 export const TRANSMISSIONS = Constants.public.Enums.vehicle_transmission as readonly Transmission[];
 export const FUELS = Constants.public.Enums.vehicle_fuel as readonly Fuel[];
 export const DRIVETRAINS = Constants.public.Enums.vehicle_drivetrain as readonly Drivetrain[];
-/** "Anuncio" en general; "propiedad" / "vehículo" cuando se sabe la categoría. */
-export const itemNoun = (c?: Category | null) => (c === "Vehículo" ? "vehículo" : c === "Inmueble" ? "propiedad" : "anuncio");
+export const SERVICE_RATES = Constants.public.Enums.service_rate as readonly ServiceRate[];
+/** Estados posibles según la categoría: un servicio no se vende ni se alquila. */
+export const statusesOf = (c: Category): readonly PropertyStatus[] =>
+  c === "Servicio" ? ["Borrador", "Publicada", "Pausada"] : ["Borrador", "Publicada", "Pausada", "Vendida", "Alquilada"];
+/** "Anuncio" en general; "propiedad" / "vehículo" / "servicio" cuando se sabe la categoría. */
+export const itemNoun = (c?: Category | null) => (c === "Vehículo" ? "vehículo" : c === "Inmueble" ? "propiedad" : c === "Servicio" ? "servicio" : "anuncio");
 
 const AMENITY_ICON: Record<string, string> = {
   Piscina: "ph-swimming-pool", Gimnasio: "ph-barbell", "Seguridad 24h": "ph-shield-check", Jardín: "ph-plant", Terraza: "ph-sun-horizon", Amueblado: "ph-armchair", "Pet friendly": "ph-paw-print", "Área social": "ph-users-three", "Parqueo visitas": "ph-car", "Planta eléctrica": "ph-lightning",
   "Aire acondicionado": "ph-snowflake", "Cámara de retroceso": "ph-video-camera", "Sensores de parqueo": "ph-broadcast", Bluetooth: "ph-bluetooth", "Pantalla táctil": "ph-device-tablet", "Vidrios eléctricos": "ph-arrows-down-up", "Asientos de cuero": "ph-armchair", Sunroof: "ph-sun", "Aros de lujo": "ph-circle-dashed", "Único dueño": "ph-user-check", "Marchamo al día": "ph-seal-check", "RTV al día": "ph-clipboard-text",
+  "Factura electrónica": "ph-receipt", Garantía: "ph-seal-check", "A domicilio": "ph-house", "Atención virtual": "ph-video-camera", "Fines de semana": "ph-calendar-check", "Emergencias 24/7": "ph-siren", "Cotización gratis": "ph-calculator", "Materiales incluidos": "ph-package",
 };
 /** Ícono de una amenidad del catálogo (las nuevas usan uno genérico). */
 export const amenityIcon = (a: Amenity) => AMENITY_ICON[a] ?? "ph-check-circle";
@@ -101,13 +118,24 @@ export const shortCrc = (n: number) => {
   return "₡" + Math.round(n / 1000) + " mil";
 };
 export const decimal = (n: number) => String(n).replace(".", ",");
-export const pricePeriod = (p: Pick<Property, "operation">) => (p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : "");
-export const priceSuffix = (p: Property) =>
-  p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : !isVehicle(p) && p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "";
+/** Servicio sin precio publicado ("A convenir"). */
+export const noPrice = (p: Pick<Property, "serviceRate">) => p.serviceRate === "A convenir";
+/** Texto antes del precio: "Desde" en preventa y en servicios cobrados por proyecto. */
+export const pricePrefix = (p: Pick<Property, "operation" | "serviceRate">) => (p.operation === "Preventa" || p.serviceRate === "Por proyecto" ? "Desde" : "");
+/** Precio principal: "₡1.000" o "A convenir". */
+export const priceMain = (p: Pick<Property, "price" | "serviceRate">) => (noPrice(p) ? "A convenir" : crc(p.price));
+export const pricePeriod = (p: Pick<Property, "operation" | "serviceRate">) =>
+  p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : p.serviceRate === "Por hora" ? "/hora" : "";
+export const priceSuffix = (p: Property) => pricePeriod(p) || (categoryOf(p.type) === "Inmueble" && p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "");
 /** "Toyota Hilux SR" (vehículo) o "" si no hay marca ni modelo. */
 export const vehicleName = (p: Pick<Property, "brand" | "model">) => [p.brand, p.model].filter(Boolean).join(" ");
 export const specs = (p: Property) =>
-  (isVehicle(p)
+  (isService(p)
+    ? [
+        { icon: "ph-briefcase", label: p.type },
+        p.serviceRate ? { icon: "ph-receipt", label: p.serviceRate } : null,
+      ]
+    : isVehicle(p)
     ? [
         p.yearBuilt ? { icon: "ph-calendar-blank", label: String(p.yearBuilt) } : null,
         p.mileageKm != null ? { icon: "ph-gauge", label: `${dots(p.mileageKm)} km` } : null,

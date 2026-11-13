@@ -171,6 +171,38 @@ describe("saveProperty", () => {
     expect(db.rpcCall("save_property")).toBeUndefined();
   });
 
+  const service = {
+    ...property, title: "Diseño de páginas web", type: "Diseño web", operation: "Venta", serviceRate: "Por proyecto", price: 150000,
+    bedrooms: 3, areaM2: 100, yearBuilt: 2020, brand: "Toyota",
+  };
+
+  it("guarda un servicio: operación Servicio, forma de cobro y sin datos de inmueble ni vehículo", async () => {
+    expect((await saveProperty(null, service, [IMG])).ok).toBe(true);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({
+      p_data: { type: "Diseño web", operation: "Servicio", service_rate: "Por proyecto", price: 150000, year_built: null, brand: null },
+    });
+  });
+
+  it("un servicio «A convenir» se guarda sin precio", async () => {
+    expect((await saveProperty(null, { ...service, serviceRate: "A convenir", price: 0 }, [IMG])).ok).toBe(true);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { service_rate: "A convenir", price: 0 } });
+  });
+
+  it("un inmueble no envía forma de cobro", async () => {
+    await saveProperty(null, { ...property, serviceRate: "Por hora" } as typeof property, [IMG]);
+    expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { operation: "Venta", service_rate: null } });
+  });
+
+  it.each<[string, Record<string, unknown>]>([
+    ["servicio sin precio y con cobro por proyecto", { price: 0 }],
+    ["forma de cobro inválida", { serviceRate: "Por kilo" }],
+    ["servicio vendido", { status: "Vendida" }],
+    ["servicio alquilado", { status: "Alquilada" }],
+  ])("rechaza %s sin llamar a la base", async (_, patch) => {
+    expect((await saveProperty(null, { ...service, ...patch } as typeof service, [IMG])).ok).toBe(false);
+    expect(db.rpcCall("save_property")).toBeUndefined();
+  });
+
   it("id de propiedad inválido", async () => {
     expect((await saveProperty("1 or 1=1", property, null)).ok).toBe(false);
   });

@@ -6,9 +6,11 @@ type Enums = Database["public"]["Enums"];
 
 export type Operation = Enums["property_operation"];
 export type PropertyType = Enums["property_type"];
-/** Inmueble o Vehículo. La base la deduce del tipo (public.type_category). */
+/** Inmueble, Vehículo o Servicio. La base la deduce del tipo (public.type_category). */
 export type Category = Enums["listing_category"];
 export type Transmission = Enums["vehicle_transmission"];
+/** Servicio: forma de cobro. */
+export type ServiceRate = Enums["service_rate"];
 export type Fuel = Enums["vehicle_fuel"];
 export type Drivetrain = Enums["vehicle_drivetrain"];
 export type PropertyStatus = Enums["property_status"];
@@ -93,6 +95,8 @@ export interface Property {
   engineCc?: number;
   color?: string;
   doors?: number;
+  // Servicio
+  serviceRate?: ServiceRate;
   agentId: string;
   amenities: Amenity[];
   images: string[];
@@ -102,7 +106,8 @@ export interface Property {
 export interface ClientPreferences {
   /** null = cualquiera. */
   category: Category | null;
-  operation: Operation | "Todas";
+  /** Las preferencias son de inmuebles y vehículos: los servicios no tienen operación propia. */
+  operation: Exclude<Operation, "Servicio"> | "Todas";
   propertyTypes: PropertyType[];
   cantons: Canton[];
   budgetMin?: number;

@@ -15,7 +15,7 @@ const MAX_ROWS = 2000;
 const PROPERTY_COLUMNS =
   "id, code, title, description, operation, type, status, featured, tag, country, province, canton, zone, address, lat, lng, price, maintenance_fee, " +
   "bedrooms, bathrooms, area_m2, parking_spaces, guests, floor, year_built, delivery, agent_id, updated_at, " +
-  "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, service_rate, " +
+  "category, brand, model, mileage_km, transmission, fuel, drivetrain, engine_cc, color, doors, service_rate, discount_price, " +
   "property_images(url, position), property_amenities(amenities(name))";
 
 const CLIENT_COLUMNS =
@@ -52,6 +52,7 @@ const toProperty = (p: any): Property => ({
   lat: Number(p.lat),
   lng: Number(p.lng),
   price: Number(p.price),
+  discountPrice: p.discount_price == null ? undefined : Number(p.discount_price),
   maintenanceFee: p.maintenance_fee == null ? undefined : Number(p.maintenance_fee),
   bedrooms: p.bedrooms ?? 0,
   bathrooms: Number(p.bathrooms ?? 0),

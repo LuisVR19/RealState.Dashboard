@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type DragEvent } from "react";
 import { saveProperty, type PropertyInput } from "@/app/actions/properties";
 import { ago, dayParts } from "@/lib/dates";
-import { amenityIcon, CATEGORIES, CATEGORY_ICON, categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, itemNoun, OP_LABEL, operationsOf, SERVICE_RATES, statusesOf, TRANSMISSIONS, typesOf, VISIT_STATUS_STYLE } from "@/lib/format";
+import { amenityIcon, CATEGORIES, CATEGORY_ICON, categoryOf, DEFAULT_COUNTRY, DRIVETRAINS, FUELS, hasOffer, itemNoun, OP_LABEL, offerLabel, operationsOf, SERVICE_RATES, statusesOf, TRANSMISSIONS, typesOf, VISIT_STATUS_STYLE } from "@/lib/format";
 import type { Category, Drivetrain, Fuel, Operation, Property, PropertyStatus, PropertyType, ServiceRate, Transmission } from "@/lib/types";
 import { DEFAULT_POINT } from "@/lib/geo";
 import { imageProblem, uploadImage } from "@/lib/upload";
@@ -73,7 +73,7 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
 
   const input = (x: Property): PropertyInput => ({
     title: x.title, description: x.description, operation: x.operation, type: x.type, status: x.status, featured: x.featured, tag: x.tag,
-    country: x.country, province: x.province, canton: x.canton, zone: x.zone, address: x.address, lat: x.lat, lng: x.lng, price: x.price, maintenanceFee: x.maintenanceFee,
+    country: x.country, province: x.province, canton: x.canton, zone: x.zone, address: x.address, lat: x.lat, lng: x.lng, price: x.price, discountPrice: x.discountPrice, maintenanceFee: x.maintenanceFee,
     bedrooms: x.bedrooms, bathrooms: x.bathrooms, areaM2: x.areaM2, parkingSpaces: x.parkingSpaces, guests: x.guests, floor: x.floor,
     yearBuilt: x.yearBuilt, delivery: x.delivery, agentId: x.agentId,
     brand: x.brand, model: x.model, mileageKm: x.mileageKm, transmission: x.transmission, fuel: x.fuel, drivetrain: x.drivetrain,
@@ -183,6 +183,15 @@ export function PropertyEditor({ property, initialCategory = "Inmueble" }: { pro
               {service && d.serviceRate === "A convenir"
                 ? <div className="field"><label>Precio</label><input className="input h40" value="A convenir" disabled /></div>
                 : <div className="field"><label>{priceLabel} *</label><input className="input h40" inputMode="numeric" value={numVal(d.price)} onChange={num("price")} placeholder="0" /></div>}
+              {!(service && d.serviceRate === "A convenir") && (
+                <div className="field">
+                  <label htmlFor="pe-discount">Precio con descuento (₡, opcional)</label>
+                  <input id="pe-discount" className="input h40" inputMode="numeric" value={numVal(d.discountPrice)} onChange={num("discountPrice")} placeholder="Sin oferta" aria-describedby="pe-discount-hint" />
+                  <span id="pe-discount-hint" className="muted-12" style={{ color: d.discountPrice && !hasOffer(d) ? "#8a2f24" : undefined }}>
+                    {!d.discountPrice ? "Si lo llenas, el anuncio se muestra en oferta." : hasOffer(d) ? `${offerLabel(d)} · se mostrará el precio anterior tachado` : "Debe ser menor que el precio."}
+                  </span>
+                </div>
+              )}
               <div className="field"><label>Etiqueta (opcional)</label><input className="input h40" maxLength={30} value={d.tag ?? ""} onChange={(e) => set({ tag: e.target.value })} placeholder="Exclusiva, Nuevo…" /></div>
             </div>
             <div className="field"><label>Descripción</label><textarea className="input" value={d.description} onChange={(e) => set({ description: e.target.value })} placeholder={vehicle ? "Estado, mantenimientos, extras y motivo de venta." : service ? "Qué incluye, experiencia, horario, zona que cubre y forma de trabajo." : "Describe distribución, acabados y entorno."} style={{ minHeight: 120 }} /></div>

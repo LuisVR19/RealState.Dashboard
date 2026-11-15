@@ -20,6 +20,8 @@ export interface PropertyInput {
   lat: number;
   lng: number;
   price: number;
+  /** Precio con descuento (oferta). Vacío o 0 = sin oferta; si se indica, debe ser menor que el precio. */
+  discountPrice?: number;
   maintenanceFee?: number;
   bedrooms: number;
   bathrooms: number;
@@ -63,6 +65,9 @@ function toRow(i: PropertyInput) {
   const serviceRate = service ? v.oneOf(i.serviceRate || "A convenir", SERVICE_RATES, "Forma de cobro") : null;
   const price = serviceRate === "A convenir" ? 0 : v.num(i.price, "El precio", 0, 1e13);
   if (!price && serviceRate !== "A convenir") throw new UserError(service ? "Indica el precio o elige la forma de cobro «A convenir»." : "El precio es obligatorio.");
+  // Oferta: opcional (vacío o 0 = sin oferta) y menor que el precio. "A convenir" no tiene precio, así que tampoco oferta.
+  const discountPrice = serviceRate === "A convenir" ? null : zeroToNull(v.num(i.discountPrice, "El precio con descuento", 0, 1e13));
+  if (discountPrice !== null && discountPrice >= (price ?? 0)) throw new UserError("El precio con descuento debe ser menor que el precio.");
   const status = v.oneOf(i.status, PROPERTY_STATUSES, "Estado");
   if (!statusesOf(category).includes(status)) throw new UserError("Un servicio solo puede estar en borrador, publicado o pausado.");
   return {
@@ -100,6 +105,7 @@ function toRow(i: PropertyInput) {
     color: vehicle ? v.place(i.color, "El color", 30) || null : null,
     doors: vehicle ? zeroToNull(v.num(i.doors, "Las puertas", 0, 9)) : null,
     service_rate: serviceRate,
+    discount_price: discountPrice,
     agent_id: v.uuid(i.agentId, "Asesor"),
   };
 }

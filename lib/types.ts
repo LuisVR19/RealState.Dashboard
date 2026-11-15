@@ -74,6 +74,8 @@ export interface Property {
   lat: number;
   lng: number;
   price: number;
+  /** Precio con descuento (oferta), misma unidad que price. Sin valor = sin oferta. Debe ser menor que price. */
+  discountPrice?: number;
   maintenanceFee?: number;
   bedrooms: number;
   bathrooms: number;

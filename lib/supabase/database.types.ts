@@ -663,6 +663,7 @@ export type Database = {
           engine_cc: number | null
           fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
           service_rate: Database["public"]["Enums"]["service_rate"] | null
+          discount_price: number | null
           mileage_km: number | null
           model: string | null
           transmission: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -708,6 +709,7 @@ export type Database = {
           engine_cc?: number | null
           fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
           service_rate?: Database["public"]["Enums"]["service_rate"] | null
+          discount_price?: number | null
           mileage_km?: number | null
           model?: string | null
           transmission?: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -753,6 +755,7 @@ export type Database = {
           engine_cc?: number | null
           fuel?: Database["public"]["Enums"]["vehicle_fuel"] | null
           service_rate?: Database["public"]["Enums"]["service_rate"] | null
+          discount_price?: number | null
           mileage_km?: number | null
           model?: string | null
           transmission?: Database["public"]["Enums"]["vehicle_transmission"] | null
@@ -1202,6 +1205,7 @@ export type Database = {
           category: Database["public"]["Enums"]["listing_category"]
           fuel: Database["public"]["Enums"]["vehicle_fuel"] | null
           service_rate: Database["public"]["Enums"]["service_rate"] | null
+          discount_price: number | null
           mileage_km: number | null
           model: string | null
           transmission: Database["public"]["Enums"]["vehicle_transmission"] | null

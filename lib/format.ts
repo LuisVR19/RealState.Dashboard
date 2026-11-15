@@ -123,10 +123,21 @@ export const noPrice = (p: Pick<Property, "serviceRate">) => p.serviceRate === "
 /** Texto antes del precio: "Desde" en preventa y en servicios cobrados por proyecto. */
 export const pricePrefix = (p: Pick<Property, "operation" | "serviceRate">) => (p.operation === "Preventa" || p.serviceRate === "Por proyecto" ? "Desde" : "");
 /** Precio principal: "₡1.000" o "A convenir". */
-export const priceMain = (p: Pick<Property, "price" | "serviceRate">) => (noPrice(p) ? "A convenir" : crc(p.price));
+type Priced = Pick<Property, "price" | "discountPrice" | "serviceRate">;
+/** En oferta: tiene precio con descuento menor que el precio (igual que el sitio público). */
+export const hasOffer = (p: Priced) => !noPrice(p) && !!p.discountPrice && p.discountPrice > 0 && p.discountPrice < p.price;
+/** Precio que paga el cliente: el de oferta si la hay, si no el normal. */
+export const effectivePrice = (p: Priced) => (hasOffer(p) ? (p.discountPrice as number) : p.price);
+/** Porcentaje de descuento redondeado (0 sin oferta). */
+export const discountPct = (p: Priced) => (hasOffer(p) ? Math.round((1 - (p.discountPrice as number) / p.price) * 100) : 0);
+/** Marca de oferta: "Oferta −15 %" (o solo "Oferta" si el descuento redondea a 0 %). */
+export const offerLabel = (p: Priced) => (discountPct(p) >= 1 ? `Oferta −${discountPct(p)} %` : "Oferta");
+/** Precio original tachado de una oferta ("" sin oferta). */
+export const priceWas = (p: Priced) => (hasOffer(p) ? crc(p.price) : "");
+export const priceMain = (p: Priced) => (noPrice(p) ? "A convenir" : crc(effectivePrice(p)));
 export const pricePeriod = (p: Pick<Property, "operation" | "serviceRate">) =>
   p.operation === "Alquiler" ? "/mes" : p.operation === "Vacacional" ? "/noche" : p.serviceRate === "Por hora" ? "/hora" : "";
-export const priceSuffix = (p: Property) => pricePeriod(p) || (categoryOf(p.type) === "Inmueble" && p.areaM2 ? shortCrc(p.price / p.areaM2) + "/m²" : "");
+export const priceSuffix = (p: Property) => pricePeriod(p) || (categoryOf(p.type) === "Inmueble" && p.areaM2 ? shortCrc(effectivePrice(p) / p.areaM2) + "/m²" : "");
 /** "Toyota Hilux SR" (vehículo) o "" si no hay marca ni modelo. */
 export const vehicleName = (p: Pick<Property, "brand" | "model">) => [p.brand, p.model].filter(Boolean).join(" ");
 export const specs = (p: Property) =>

@@ -1,4 +1,4 @@
-import { initialsOf, noPrice, OP_LABEL, placeLine, priceMain, pricePrefix, priceSuffix, specs } from "@/lib/format";
+import { hasOffer, initialsOf, noPrice, OP_LABEL, offerLabel, placeLine, priceMain, pricePrefix, priceSuffix, priceWas, specs } from "@/lib/format";
 import type { Property } from "@/lib/types";
 
 /** Vista previa de la tarjeta tal como se ve en el sitio público (sin interacción). */
@@ -8,7 +8,11 @@ export function PreviewCard({ p, agentName }: { p: Property; agentName: string }
     <div className="pcard">
       <div className="pcard-media">
         {p.images[0] && <img src={p.images[0]} alt={p.title} />}
-        <div className="pcard-tags"><span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>{p.tag && <span className="tag tag-accent">{p.tag}</span>}</div>
+        <div className="pcard-tags">
+          <span className="tag tag-neutral">{OP_LABEL[p.operation]}</span>
+          {hasOffer(p) && <span className="tag tag-accent-2 offer-tag"><i className="ph-fill ph-tag" aria-hidden="true" />{offerLabel(p)}</span>}
+          {p.tag && <span className="tag tag-accent">{p.tag}</span>}
+        </div>
         <span className="pcard-fav"><i className="ph ph-heart" style={{ fontSize: 18 }} /></span>
         {n > 1 && <span className="pcard-counter"><i className="ph ph-camera" style={{ fontSize: 12 }} />1/{n}</span>}
       </div>
@@ -16,6 +20,7 @@ export function PreviewCard({ p, agentName }: { p: Property; agentName: string }
         <div className="pcard-price">
           {pricePrefix(p) && <span className="muted-12">{pricePrefix(p)}</span>}
           <span className="pcard-price-main">{noPrice(p) || p.price ? priceMain(p) : "₡0"}</span>
+          {hasOffer(p) && <s className="price-was" aria-label={`Antes ${priceWas(p)}`}>{priceWas(p)}</s>}
           <span className="muted-12">{p.price ? priceSuffix(p) : ""}</span>
         </div>
         <div className="pcard-title">{p.title || "Título del anuncio"}</div>

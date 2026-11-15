@@ -228,6 +228,10 @@ img { max-width: none; }
 .pcard-counter { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--color-bg) 75%, transparent); color: var(--color-neutral-200); }
 .pcard-body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 14px 2px 4px; }
 .pcard-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+/* — oferta (precio con descuento), igual que en el sitio público — */
+.price-was { font-size: 13px; font-weight: 400; color: var(--color-neutral-500); text-decoration: line-through; text-decoration-thickness: 1px; white-space: nowrap; }
+.offer-tag { gap: 4px; font-weight: 500; }
+.offer-tag i { font-size: 12px; }
 .pcard-price-main { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
 .pcard-title { font-size: 14px; line-height: 1.35; color: var(--color-neutral-200); text-wrap: pretty; text-decoration: none; }
 .pcard-title:hover { color: var(--color-neutral-200); }

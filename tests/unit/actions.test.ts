@@ -203,6 +203,30 @@ describe("saveProperty", () => {
     expect(db.rpcCall("save_property")).toBeUndefined();
   });
 
+  describe("precio con descuento (oferta)", () => {
+    it("guarda la oferta cuando es menor que el precio", async () => {
+      expect((await saveProperty(null, { ...property, price: 1000, discountPrice: 850 }, [IMG])).ok).toBe(true);
+      expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { price: 1000, discount_price: 850 } });
+    });
+
+    it.each([[undefined], [0]])("sin oferta (%s) envía null", async (discountPrice) => {
+      await saveProperty(null, { ...property, price: 1000, discountPrice }, [IMG]);
+      expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { discount_price: null } });
+    });
+
+    it.each([[1000], [1200]])("rechaza una oferta de %s con precio 1000 sin llamar a la base", async (discountPrice) => {
+      const res = await saveProperty(null, { ...property, price: 1000, discountPrice }, [IMG]);
+      expect(res.ok).toBe(false);
+      expect(res.ok ? "" : res.error).toBe("El precio con descuento debe ser menor que el precio.");
+      expect(db.rpcCall("save_property")).toBeUndefined();
+    });
+
+    it("un servicio «A convenir» nunca guarda oferta", async () => {
+      await saveProperty(null, { ...service, serviceRate: "A convenir", price: 0, discountPrice: 500 }, [IMG]);
+      expect(db.rpcCall("save_property")?.payload).toMatchObject({ p_data: { service_rate: "A convenir", price: 0, discount_price: null } });
+    });
+  });
+
   it("id de propiedad inválido", async () => {
     expect((await saveProperty("1 or 1=1", property, null)).ok).toBe(false);
   });
